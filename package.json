@@ -1,6 +1,6 @@
 {
   "name": "crestron-dm-gui-tool",
-  "version": "1.0.0",
+  "version": "0.0.2-beta",
   "description": "Browser-based control surface for a Crestron DM-MD8x8 matrix switcher",
   "main": "server/index.js",
   "scripts": {

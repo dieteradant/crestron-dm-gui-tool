@@ -4,10 +4,13 @@ Browser-based control surface for a Crestron DM-MD8x8 matrix switcher.
 
 This project provides a lightweight Node.js server and browser UI for routing, status inspection, EDID and HDCP views, network/system queries, and raw console access over the device's CTP interface.
 
+Current release line: `0.0.2 Beta`
+
 ![Routing matrix screenshot](docs/assets/app-screenshot.png)
 
 ## Status and Compatibility
 
+- Public release status: initial beta
 - Confirmed target: `DM-MD8x8`
 - Similar Crestron DM matrix switchers may work, but they are untested.
 - The response parsing in this repo is tuned to output formats observed on DM-MD8x8 firmware `v4.102`.
