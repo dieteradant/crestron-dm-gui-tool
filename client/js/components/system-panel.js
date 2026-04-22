@@ -47,7 +47,7 @@ export class SystemPanel {
         <div class="section-header">
           <span class="section-title">Danger Zone</span>
         </div>
-        <button class="btn btn-danger" id="reboot-btn">Reboot Switcher</button>
+        <button class="btn btn-danger" id="reboot-btn">Reboot Connected Device</button>
       </div>
     `;
     this.bindEvents();
@@ -139,8 +139,8 @@ export class SystemPanel {
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
       <div class="modal">
-        <h3>Reboot Switcher?</h3>
-        <p style="color:var(--text-secondary);margin-bottom:8px;">This will reboot the DM-MD8x8 switcher. All routes will be maintained but the device will be offline for 1-2 minutes.</p>
+        <h3>Reboot Connected Device?</h3>
+        <p style="color:var(--text-secondary);margin-bottom:8px;">This will reboot the currently connected matrix switcher. Active routes may be preserved by the hardware, but the device will likely be offline for 1-2 minutes.</p>
         <p style="color:var(--error);font-weight:600;">This action cannot be undone.</p>
         <div class="modal-actions">
           <button class="btn btn-secondary" id="reboot-cancel">Cancel</button>

@@ -13,23 +13,33 @@ const createStatusRouter = require('./routes/status');
 const createSystemRouter = require('./routes/system');
 const createNetworkRouter = require('./routes/network');
 
-const SWITCHER_HOST = process.env.SWITCHER_HOST || '192.168.99.194';
-const SWITCHER_PORT = parseInt(process.env.SWITCHER_PORT || '41795');
-const SERVER_PORT = parseInt(process.env.SERVER_PORT || '3000');
+const DEFAULT_SWITCHER_PORT = 41795;
+const DEFAULT_SERVER_PORT = 3000;
+
+function parsePort(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+const SWITCHER_HOST = (process.env.SWITCHER_HOST || '').trim();
+const SWITCHER_PORT = parsePort(process.env.SWITCHER_PORT, DEFAULT_SWITCHER_PORT);
+const SERVER_PORT = parsePort(process.env.SERVER_PORT, DEFAULT_SERVER_PORT);
 
 // --- CTP Connection ---
 const ctp = new CTPConnection(SWITCHER_HOST, SWITCHER_PORT);
 const commandQueue = new CommandQueue(ctp);
 
 ctp.on('connected', () => {
-  console.log(`[Server] CTP connected to ${SWITCHER_HOST}:${SWITCHER_PORT}`);
+  console.log(`[Server] CTP connected to ${ctp.host}:${ctp.port}`);
 });
 
 ctp.on('disconnected', () => {
   console.log('[Server] CTP disconnected');
 });
 
-ctp.connect();
+if (ctp.isConfigured) {
+  ctp.connect();
+}
 
 // --- Express ---
 const app = express();
@@ -46,7 +56,8 @@ app.use('/api', createNetworkRouter(commandQueue));
 app.get('/api/connection', (req, res) => {
   res.json({
     connected: ctp.connected,
-    host: ctp.host,
+    configured: ctp.isConfigured,
+    host: ctp.host || '',
     port: ctp.port,
     prompt: ctp.promptPattern
   });
@@ -54,12 +65,13 @@ app.get('/api/connection', (req, res) => {
 
 // Connect to a different switcher
 app.post('/api/connection', (req, res) => {
-  const { host, port } = req.body;
+  const host = String(req.body?.host || '').trim();
   if (!host) return res.status(400).json({ error: 'host required' });
-  const p = parseInt(port) || 41795;
+
+  const p = parsePort(req.body?.port, DEFAULT_SWITCHER_PORT);
   console.log(`[Server] Reconnecting to ${host}:${p}`);
   ctp.reconnectTo(host, p);
-  res.json({ success: true, host, port: p });
+  res.json({ success: true, configured: true, host, port: p });
 });
 
 // Raw command endpoint (for any CTP command)
@@ -80,8 +92,15 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const wsHandler = new WSHandler(wss, ctp, commandQueue);
 
 server.listen(SERVER_PORT, () => {
-  console.log(`[Server] GUI running at http://localhost:${SERVER_PORT}`);
-  console.log(`[Server] Connecting to switcher at ${SWITCHER_HOST}:${SWITCHER_PORT}`);
+  const address = server.address();
+  const listenPort = typeof address === 'object' && address ? address.port : SERVER_PORT;
+
+  console.log(`[Server] GUI running at http://localhost:${listenPort}`);
+  if (ctp.isConfigured) {
+    console.log(`[Server] Attempting connection to ${ctp.host}:${ctp.port}`);
+  } else {
+    console.log('[Server] No switcher configured. Set SWITCHER_HOST or use the Connect button in the UI.');
+  }
 });
 
 // Graceful shutdown

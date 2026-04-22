@@ -1,11 +1,32 @@
 {
   "name": "crestron-dm-gui-tool",
   "version": "1.0.0",
-  "description": "Web GUI for Crestron DM-MD8x8 switcher management",
+  "description": "Browser-based control surface for a Crestron DM-MD8x8 matrix switcher",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "smoke": "node scripts/smoke-start.js"
+  },
+  "keywords": [
+    "crestron",
+    "dm-md8x8",
+    "matrix-switcher",
+    "audiovisual",
+    "av-integration"
+  ],
+  "author": "Dieter Adant <dieter@adant.io>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dieteradant/crestron-dm-gui-tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dieteradant/crestron-dm-gui-tool/issues"
+  },
+  "homepage": "https://github.com/dieteradant/crestron-dm-gui-tool#readme",
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "dotenv": "^16.4.7",

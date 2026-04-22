@@ -12,20 +12,16 @@ class WSHandler {
     });
 
     this.connection.on('connected', () => {
-      this._broadcastAll({ type: 'connection', connected: true, prompt: this.connection.promptPattern });
+      this._broadcastAll(this._connectionPayload());
     });
 
     this.connection.on('disconnected', () => {
-      this._broadcastAll({ type: 'connection', connected: false });
+      this._broadcastAll(this._connectionPayload());
     });
 
     wss.on('connection', (ws) => {
       // Send initial connection state
-      ws.send(JSON.stringify({
-        type: 'connection',
-        connected: this.connection.connected,
-        prompt: this.connection.promptPattern
-      }));
+      ws.send(JSON.stringify(this._connectionPayload()));
 
       ws.on('message', (raw) => {
         let msg;
@@ -44,6 +40,17 @@ class WSHandler {
         }
       });
     });
+  }
+
+  _connectionPayload() {
+    return {
+      type: 'connection',
+      connected: this.connection.connected,
+      configured: this.connection.isConfigured,
+      host: this.connection.host || '',
+      port: this.connection.port,
+      prompt: this.connection.promptPattern
+    };
   }
 
   _handleMessage(ws, msg) {

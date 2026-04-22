@@ -4,7 +4,7 @@ const EventEmitter = require('events');
 class CTPConnection extends EventEmitter {
   constructor(host, port) {
     super();
-    this.host = host;
+    this.host = typeof host === 'string' ? host.trim() : '';
     this.port = port;
     this.socket = null;
     this.connected = false;
@@ -15,13 +15,18 @@ class CTPConnection extends EventEmitter {
     this._buffer = '';
   }
 
+  get isConfigured() {
+    return Boolean(this.host);
+  }
+
   connect() {
     this._shouldReconnect = true;
+    if (!this.isConfigured) return;
     this._createSocket();
   }
 
   reconnectTo(host, port) {
-    this.host = host;
+    this.host = typeof host === 'string' ? host.trim() : '';
     this.port = port;
     this.promptPattern = null;
     this.destroy();
@@ -29,6 +34,8 @@ class CTPConnection extends EventEmitter {
   }
 
   _createSocket() {
+    if (!this.isConfigured) return;
+
     if (this.socket) {
       this.socket.removeAllListeners();
       this.socket.destroy();
@@ -118,6 +125,7 @@ class CTPConnection extends EventEmitter {
       this.socket.destroy();
     }
     this.connected = false;
+    this.promptPattern = null;
   }
 }
 
