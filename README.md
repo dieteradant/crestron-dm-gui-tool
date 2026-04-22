@@ -6,7 +6,19 @@ This project provides a lightweight Node.js server and browser UI for routing, s
 
 Current release line: `0.0.2 Beta`
 
+## Screenshots
+
+### Routing Matrix
+
 ![Routing matrix screenshot](docs/assets/app-screenshot.png)
+
+### Card Inventory
+
+![Status view screenshot](docs/assets/status-screenshot.png)
+
+### System View
+
+![System view screenshot](docs/assets/system-screenshot.png)
 
 ## Status and Compatibility
 
