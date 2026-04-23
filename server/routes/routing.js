@@ -1,13 +1,20 @@
 const express = require('express');
 const { parseRoutes } = require('../ctp/parser');
 
-function createRouter(commandQueue) {
+function createRouter(commandQueue, deviceCapabilities) {
   const router = express.Router();
 
   router.get('/routes', async (req, res) => {
     try {
+      const capabilities = deviceCapabilities ? await deviceCapabilities.get() : null;
       const raw = await commandQueue.execute('DUMPDMROUTEInfo', 20000);
-      res.json({ ...parseRoutes(raw), raw });
+      res.json({
+        ...parseRoutes(raw, capabilities || {}),
+        raw,
+        inputCount: capabilities?.inputCount || null,
+        outputCount: capabilities?.outputCount || null,
+        model: capabilities?.model || null,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

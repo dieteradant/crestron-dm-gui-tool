@@ -15,7 +15,13 @@ async function request(path, options = {}) {
 export const api = {
   // Connection
   connection: () => request('/connection'),
-  connect: (host, port) => request('/connection', { method: 'POST', body: { host, port } }),
+  connect: (hostOrConfig, port, transport = 'ctp', username = '', password = '') => request('/connection', {
+    method: 'POST',
+    body: typeof hostOrConfig === 'object'
+      ? hostOrConfig
+      : { host: hostOrConfig, port, transport, username, password }
+  }),
+  getCapabilities: () => request('/capabilities'),
 
   // Routing
   getRoutes: () => request('/routes'),

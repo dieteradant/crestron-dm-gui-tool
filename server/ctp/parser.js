@@ -1,8 +1,74 @@
 // CTP response parsers — raw text → structured JSON
-// Tailored to DM-MD8x8 firmware v4.102 output formats
 
-function parseRoutes(raw) {
+function toPositiveInt(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseModelDimensions(value) {
+  const match = String(value || '').match(/MD(\d+)x(\d+)/i);
+  if (!match) return null;
+  return {
+    inputCount: Number.parseInt(match[1], 10),
+    outputCount: Number.parseInt(match[2], 10),
+  };
+}
+
+function parseStreamPort(stream) {
+  const match = String(stream || '').match(/^([bc])(\d+)(?:\.\d+)?$/i);
+  if (!match) return null;
+
+  return {
+    role: match[1].toLowerCase() === 'b' ? 'input' : 'output',
+    portNum: Number.parseInt(match[2], 10) + 1,
+  };
+}
+
+function getMaxStreamPort(cards, role) {
+  let maxPort = 0;
+
+  for (const card of cards) {
+    if (card.streamInfo?.role === role && card.streamInfo.portNum > maxPort) {
+      maxPort = card.streamInfo.portNum;
+    }
+  }
+
+  return maxPort || null;
+}
+
+function inferOutputSlotOffset(cards, inputCount) {
+  const outputSlots = cards
+    .filter(card => card.streamInfo?.role === 'output')
+    .map(card => card.slot)
+    .filter(Number.isInteger);
+
+  if (outputSlots.length > 0) {
+    return Math.min(...outputSlots) - 1;
+  }
+
+  return toPositiveInt(inputCount);
+}
+
+function resolveCardLayout(cards, options = {}) {
+  const modelDimensions = parseModelDimensions(options.model) || parseModelDimensions(options.prompt);
+  const inputCount = toPositiveInt(options.inputCount) || modelDimensions?.inputCount || getMaxStreamPort(cards, 'input') || 16;
+  const outputCount = toPositiveInt(options.outputCount) || modelDimensions?.outputCount || getMaxStreamPort(cards, 'output') || inputCount;
+  const outputSlotOffset = toPositiveInt(options.outputSlotOffset) || modelDimensions?.inputCount || inferOutputSlotOffset(cards, inputCount) || inputCount;
+
+  return { inputCount, outputCount, outputSlotOffset };
+}
+
+function stripInternalCardFields(card) {
+  const { streamInfo, ...cleanCard } = card;
+  return cleanCard;
+}
+
+function parseRoutes(raw, options = {}) {
   const routes = { video: {}, audio: {}, usb: {} };
+  const outputCount = toPositiveInt(options.outputCount);
+  const outputSlotOffset = toPositiveInt(options.outputSlotOffset) || 16;
+  const inputSlotMap = options.inputSlotMap || {};
+  const outputSlotMap = options.outputSlotMap || {};
 
   // Parse output card sections
   // Format:
@@ -18,25 +84,34 @@ function parseRoutes(raw) {
     const slotNum = parseInt(sections[i]);
     const body = sections[i + 1] || '';
 
-    // Map slot number to output number (slot 17 = out 1, etc.)
-    const outNum = slotNum - 16;
-    if (outNum < 1 || outNum > 16) continue;
+    const outNum = outputSlotMap[slotNum] || (slotNum - outputSlotOffset);
+    if (outNum < 1) continue;
+    if (outputCount && outNum > outputCount) continue;
 
     const videoMatch = body.match(/Video\s+Routed\s+From\s+Input\s+Card\s+at\s+slot\s+(\d+)/i);
-    if (videoMatch) routes.video[outNum] = parseInt(videoMatch[1]);
+    if (videoMatch) {
+      const inSlot = parseInt(videoMatch[1], 10);
+      routes.video[outNum] = inputSlotMap[inSlot] || inSlot;
+    }
 
     const audioMatch = body.match(/Audio\s+Routed\s+From\s+Input\s+Card\s+at\s+slot\s+(\d+)/i);
-    if (audioMatch) routes.audio[outNum] = parseInt(audioMatch[1]);
+    if (audioMatch) {
+      const inSlot = parseInt(audioMatch[1], 10);
+      routes.audio[outNum] = inputSlotMap[inSlot] || inSlot;
+    }
 
     const usbMatch = body.match(/USB\s+Host\s+Routed\s+to\s+Card\s+at\s+slot\s+(\d+)/i);
-    if (usbMatch) routes.usb[outNum] = parseInt(usbMatch[1]);
+    if (usbMatch) {
+      const inSlot = parseInt(usbMatch[1], 10);
+      routes.usb[outNum] = inputSlotMap[inSlot] || inSlot;
+    }
   }
 
   return routes;
 }
 
-function parseCards(raw) {
-  const cards = [];
+function parseCards(raw, options = {}) {
+  const baseCards = [];
   const lines = raw.split('\n');
 
   for (const line of lines) {
@@ -46,23 +121,50 @@ function parseCards(raw) {
       const slot = parseInt(match[1]);
       const type = match[2];
       const description = match[3].trim();
-      const isInput = slot <= 16;
-      const isOutput = slot >= 17 && slot <= 32;
+      const stream = match[6] || null;
 
-      cards.push({
+      baseCards.push({
         slot,
         type,
         description,
         firmware: match[4] || null,
         serial: match[5] || null,
-        stream: match[6] || null,
-        role: isInput ? 'input' : isOutput ? 'output' : 'system',
-        portNum: isInput ? slot : isOutput ? slot - 16 : null,
+        stream,
+        streamInfo: parseStreamPort(stream),
       });
     }
   }
 
-  return { cards, raw };
+  const layout = resolveCardLayout(baseCards, options);
+  const cards = baseCards.map((card) => {
+    let role = 'system';
+    let portNum = null;
+
+    if (card.streamInfo) {
+      role = card.streamInfo.role;
+      portNum = card.streamInfo.portNum;
+    } else if (card.slot >= 1 && card.slot <= layout.inputCount) {
+      role = 'input';
+      portNum = card.slot;
+    } else if (card.slot > layout.outputSlotOffset && card.slot <= layout.outputSlotOffset + layout.outputCount) {
+      role = 'output';
+      portNum = card.slot - layout.outputSlotOffset;
+    }
+
+    return stripInternalCardFields({
+      ...card,
+      role,
+      portNum,
+    });
+  });
+
+  return {
+    cards,
+    raw,
+    inputCount: layout.inputCount,
+    outputCount: layout.outputCount,
+    outputSlotOffset: layout.outputSlotOffset,
+  };
 }
 
 function parseEdid(raw) {
@@ -128,7 +230,44 @@ function parseTop(raw) {
   return { raw };
 }
 
+function buildDeviceCapabilities({ version = {}, cards = {}, prompt = null } = {}) {
+  const model = version.model || String(prompt || '').replace(/>$/, '') || null;
+  const parsedCards = Array.isArray(cards.cards)
+    ? cards
+    : parseCards(cards.raw || '', { model, prompt });
+
+  const inputSlotMap = {};
+  const outputSlotMap = {};
+
+  for (const card of parsedCards.cards || []) {
+    if (card.role === 'input' && card.portNum != null) {
+      inputSlotMap[card.slot] = card.portNum;
+    }
+    if (card.role === 'output' && card.portNum != null) {
+      outputSlotMap[card.slot] = card.portNum;
+    }
+  }
+
+  return {
+    model,
+    firmware: version.firmware || null,
+    serial: version.serial || null,
+    prompt: prompt || null,
+    inputCount: parsedCards.inputCount || null,
+    outputCount: parsedCards.outputCount || null,
+    outputSlotOffset: parsedCards.outputSlotOffset || null,
+    inputSlotMap,
+    outputSlotMap,
+    cards: parsedCards.cards || [],
+    raw: {
+      version: version.raw || '',
+      cards: parsedCards.raw || '',
+    },
+  };
+}
+
 module.exports = {
+  parseModelDimensions,
   parseRoutes,
   parseCards,
   parseEdid,
@@ -138,5 +277,6 @@ module.exports = {
   parseErrLog,
   parseUptime,
   parseMemory,
-  parseTop
+  parseTop,
+  buildDeviceCapabilities
 };

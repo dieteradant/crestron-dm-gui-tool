@@ -1,11 +1,23 @@
 const express = require('express');
 const { parseCards, parseEdid, parseHdcp } = require('../ctp/parser');
 
-function createRouter(commandQueue) {
+function createRouter(commandQueue, deviceCapabilities) {
   const router = express.Router();
 
   router.get('/cards', async (req, res) => {
     try {
+      if (deviceCapabilities) {
+        const capabilities = await deviceCapabilities.get();
+        res.json({
+          cards: capabilities.cards,
+          raw: capabilities.raw.cards,
+          inputCount: capabilities.inputCount,
+          outputCount: capabilities.outputCount,
+          model: capabilities.model,
+        });
+        return;
+      }
+
       const raw = await commandQueue.execute('CARDS', 10000);
       res.json(parseCards(raw));
     } catch (err) {

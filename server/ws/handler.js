@@ -6,7 +6,7 @@ class WSHandler {
     this._terminalClients = new Set();
     this._subscriptions = new Map(); // channel -> Set<ws>
 
-    // Forward raw CTP data to terminal clients
+    // Forward raw console data to terminal clients
     this.connection.on('data', (data) => {
       this._broadcast('terminal', { type: 'terminal', data });
     });
@@ -49,6 +49,9 @@ class WSHandler {
       configured: this.connection.isConfigured,
       host: this.connection.host || '',
       port: this.connection.port,
+      transport: this.connection.transport,
+      username: this.connection.username || '',
+      hasPassword: Boolean(this.connection.password),
       prompt: this.connection.promptPattern
     };
   }
@@ -57,7 +60,7 @@ class WSHandler {
     switch (msg.type) {
       case 'terminal':
         this._terminalClients.add(ws);
-        // Send raw keystrokes directly to CTP
+        // Send raw keystrokes directly to the active console transport
         this.connection.sendRaw(msg.data);
         break;
 

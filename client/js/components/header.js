@@ -1,13 +1,15 @@
 import { api } from '../lib/api.js';
 
 export class Header {
-  constructor(wsClient, onTabChange) {
+  constructor(wsClient, onTabChange, onConnectionStateChange = null) {
     this.wsClient = wsClient;
     this.onTabChange = onTabChange;
+    this.onConnectionStateChange = onConnectionStateChange;
     this.el = document.getElementById('header');
     this.activeTab = 'routing';
     this.connected = false;
     this.configured = false;
+    this.transport = 'ctp';
 
     this.tabs = [
       { id: 'routing', label: 'Routing', key: '1' },
@@ -38,11 +40,22 @@ export class Header {
         <div class="queue-indicator" id="queue-indicator"></div>
       </div>
       <div id="conn-settings" style="display:none;background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:8px 16px;">
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="font-size:12px;color:var(--text-secondary);">Transport:</label>
+          <select id="conn-transport" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;">
+            <option value="ctp">CTP</option>
+            <option value="ssh">SSH</option>
+          </select>
           <label style="font-size:12px;color:var(--text-secondary);">Host:</label>
           <input type="text" id="conn-host" placeholder="switcher.local" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:220px;">
           <label style="font-size:12px;color:var(--text-secondary);">Port:</label>
           <input type="number" id="conn-port" placeholder="41795" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:80px;">
+          <span id="conn-auth-fields" style="display:none;align-items:center;gap:8px;">
+            <label style="font-size:12px;color:var(--text-secondary);">User:</label>
+            <input type="text" id="conn-username" placeholder="admin" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:120px;">
+            <label style="font-size:12px;color:var(--text-secondary);">Pass:</label>
+            <input type="password" id="conn-password" placeholder="optional" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:140px;">
+          </span>
           <button class="btn btn-primary btn-sm" id="conn-go">Connect</button>
         </div>
       </div>
@@ -82,6 +95,9 @@ export class Header {
 
     // Connect button
     document.getElementById('conn-go').addEventListener('click', () => this.doConnect());
+    document.getElementById('conn-transport').addEventListener('change', (e) => {
+      this.updateTransportFields(e.target.value);
+    });
     document.getElementById('conn-host').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.doConnect();
     });
@@ -93,26 +109,56 @@ export class Header {
   }
 
   async doConnect() {
+    const transport = document.getElementById('conn-transport').value;
     const host = document.getElementById('conn-host').value.trim();
-    const port = document.getElementById('conn-port').value.trim();
+    const portValue = document.getElementById('conn-port').value.trim();
+    const username = document.getElementById('conn-username')?.value.trim() || '';
+    const password = document.getElementById('conn-password')?.value ?? '';
+    const defaultPort = transport === 'ssh' ? 22 : 41795;
     if (!host) return;
+    if (transport === 'ssh' && !username) {
+      window.app?.toast('SSH username required', 'error');
+      return;
+    }
     try {
-      await api.connect(host, port ? parseInt(port, 10) : 41795);
+      const selectedPort = portValue ? parseInt(portValue, 10) : defaultPort;
+      const response = await api.connect({
+        host,
+        port: selectedPort,
+        transport,
+        username,
+        password,
+      });
+      document.getElementById('conn-port').value = selectedPort;
+      this.applyConnectionState({
+        ...response,
+        connected: false,
+        prompt: null,
+      });
       document.getElementById('conn-settings').style.display = 'none';
-      window.app?.toast(`Connecting to ${host}:${port || 41795}...`, 'info');
+      window.app?.toast(`Connecting via ${transport.toUpperCase()} to ${host}:${portValue || defaultPort}...`, 'info');
     } catch (err) {
       window.app?.toast(`Connect failed: ${err.message}`, 'error');
     }
   }
 
   applyConnectionState(data) {
-    this.updateConnection(data.connected, data.prompt, data.configured);
+    this.updateConnection(data.connected, data.prompt, data.configured, data.transport);
+    this.onConnectionStateChange?.(data);
 
+    const transportInput = document.getElementById('conn-transport');
     const hostInput = document.getElementById('conn-host');
     const portInput = document.getElementById('conn-port');
+    const usernameInput = document.getElementById('conn-username');
+
+    if (transportInput) {
+      transportInput.value = data.transport || 'ctp';
+      this.updateTransportFields(transportInput.value);
+    }
 
     if (hostInput && !hostInput.value && data.host) hostInput.value = data.host;
     if (portInput && !portInput.value && data.port) portInput.value = data.port || 41795;
+    if (usernameInput && !usernameInput.value && data.username) usernameInput.value = data.username;
   }
 
   async pollConnection() {
@@ -137,9 +183,10 @@ export class Header {
     this.onTabChange(tabId);
   }
 
-  updateConnection(connected, prompt, configured = true) {
+  updateConnection(connected, prompt, configured = true, transport = 'ctp') {
     this.connected = connected;
     this.configured = configured;
+    this.transport = transport || 'ctp';
     const dot = document.getElementById('conn-dot');
     const label = document.getElementById('conn-label');
     if (!dot || !label) return;
@@ -148,6 +195,16 @@ export class Header {
       label.textContent = 'No switcher configured';
       return;
     }
-    label.textContent = connected ? (prompt || 'Connected') : 'Disconnected';
+    label.textContent = connected ? (prompt || `${this.transport.toUpperCase()} connected`) : `${this.transport.toUpperCase()} disconnected`;
+  }
+
+  updateTransportFields(transport) {
+    const authFields = document.getElementById('conn-auth-fields');
+    const portInput = document.getElementById('conn-port');
+    if (!authFields || !portInput) return;
+
+    const ssh = transport === 'ssh';
+    authFields.style.display = ssh ? 'inline-flex' : 'none';
+    portInput.placeholder = ssh ? '22' : '41795';
   }
 }

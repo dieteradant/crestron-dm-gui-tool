@@ -1,56 +1,83 @@
 import { api } from '../lib/api.js';
 
 export class RoutingMatrix {
-  constructor() {
+  constructor(capabilities = {}) {
     this.el = document.getElementById('panel-routing');
-    this.size = 8;
     this.mode = 'video';
     this.routes = { video: {}, audio: {}, usb: {} };
     this.raw = '';
     this.loading = false;
+    this.inputCount = 0;
+    this.outputCount = 0;
+    this.model = null;
+    this._eventsBound = false;
+
+    this.setCapabilities(capabilities);
     this.render();
     this.bindEvents();
   }
 
+  setCapabilities(capabilities = {}) {
+    const nextInputCount = Number.isInteger(capabilities.inputCount) && capabilities.inputCount > 0 ? capabilities.inputCount : 0;
+    const nextOutputCount = Number.isInteger(capabilities.outputCount) && capabilities.outputCount > 0 ? capabilities.outputCount : 0;
+    const nextModel = capabilities.model || null;
+    const changed = nextInputCount !== this.inputCount || nextOutputCount !== this.outputCount || nextModel !== this.model;
+
+    this.inputCount = nextInputCount;
+    this.outputCount = nextOutputCount;
+    this.model = nextModel;
+
+    if (changed && this.el?.innerHTML) {
+      this.render();
+    }
+  }
+
   render() {
+    const hasMatrix = this.inputCount > 0 && this.outputCount > 0;
+
     this.el.innerHTML = `
       <div class="routing-controls">
         <label>Mode:</label>
         <select id="route-mode">
-          <option value="video">Video</option>
-          <option value="audio">Audio</option>
-          <option value="usb">USB</option>
-          <option value="av">A/V</option>
-          <option value="avu">A/V/USB</option>
+          <option value="video" ${this.mode === 'video' ? 'selected' : ''}>Video</option>
+          <option value="audio" ${this.mode === 'audio' ? 'selected' : ''}>Audio</option>
+          <option value="usb" ${this.mode === 'usb' ? 'selected' : ''}>USB</option>
+          <option value="av" ${this.mode === 'av' ? 'selected' : ''}>A/V</option>
+          <option value="avu" ${this.mode === 'avu' ? 'selected' : ''}>A/V/USB</option>
         </select>
         <button class="btn btn-secondary btn-sm" id="route-refresh">Refresh</button>
         <button class="btn btn-secondary btn-sm" id="route-raw-toggle">Raw</button>
       </div>
-      <div class="matrix-wrapper">
-        <div class="matrix" id="routing-grid" style="grid-template-columns: 80px repeat(${this.size}, 52px);">
-          ${this._renderHeaders()}
-          ${this._renderRows()}
+      ${hasMatrix ? `
+        <div class="matrix-wrapper">
+          <div class="matrix" id="routing-grid" style="grid-template-columns: 80px repeat(${this.outputCount}, 52px);">
+            ${this._renderHeaders()}
+            ${this._renderRows()}
+          </div>
         </div>
-      </div>
+      ` : '<div class="loading">Connect to a switcher to load the routing grid.</div>'}
       <div class="raw-output" id="route-raw" style="display:none; margin-top:12px;"></div>
     `;
+
+    const rawEl = document.getElementById('route-raw');
+    if (rawEl) rawEl.textContent = this.raw;
   }
 
   _renderHeaders() {
     let html = '<div class="matrix-header"></div>';
-    for (let o = 1; o <= this.size; o++) {
-      html += `<div class="matrix-header">OUT ${o}</div>`;
+    for (let output = 1; output <= this.outputCount; output++) {
+      html += `<div class="matrix-header">OUT ${output}</div>`;
     }
     return html;
   }
 
   _renderRows() {
     let html = '';
-    for (let i = 1; i <= this.size; i++) {
-      html += `<div class="matrix-label">IN ${i}</div>`;
-      for (let o = 1; o <= this.size; o++) {
-        const active = this._isActive(i, o);
-        html += `<div class="matrix-cell ${active ? 'active' : ''}" data-in="${i}" data-out="${o}">${active ? '●' : ''}</div>`;
+    for (let input = 1; input <= this.inputCount; input++) {
+      html += `<div class="matrix-label">IN ${input}</div>`;
+      for (let output = 1; output <= this.outputCount; output++) {
+        const active = this._isActive(input, output);
+        html += `<div class="matrix-cell ${active ? 'active' : ''}" data-in="${input}" data-out="${output}">${active ? '●' : ''}</div>`;
       }
     }
     return html;
@@ -62,26 +89,31 @@ export class RoutingMatrix {
   }
 
   bindEvents() {
-    this.el.addEventListener('click', async (e) => {
-      const cell = e.target.closest('.matrix-cell');
+    if (this._eventsBound) return;
+    this._eventsBound = true;
+
+    this.el.addEventListener('click', async (event) => {
+      const cell = event.target.closest('.matrix-cell');
       if (cell) {
-        const input = parseInt(cell.dataset.in);
-        const output = parseInt(cell.dataset.out);
+        const input = parseInt(cell.dataset.in, 10);
+        const output = parseInt(cell.dataset.out, 10);
         await this.setRoute(input, output);
       }
     });
 
-    this.el.addEventListener('click', (e) => {
-      if (e.target.id === 'route-refresh') this.refresh();
-      if (e.target.id === 'route-raw-toggle') {
+    this.el.addEventListener('click', (event) => {
+      if (event.target.id === 'route-refresh') this.refresh();
+      if (event.target.id === 'route-raw-toggle') {
         const raw = document.getElementById('route-raw');
-        raw.style.display = raw.style.display === 'none' ? 'block' : 'none';
+        if (raw) {
+          raw.style.display = raw.style.display === 'none' ? 'block' : 'none';
+        }
       }
     });
 
-    this.el.addEventListener('change', (e) => {
-      if (e.target.id === 'route-mode') {
-        this.mode = e.target.value;
+    this.el.addEventListener('change', (event) => {
+      if (event.target.id === 'route-mode') {
+        this.mode = event.target.value;
         this.updateGrid();
       }
     });
@@ -114,8 +146,10 @@ export class RoutingMatrix {
   async refresh() {
     if (this.loading) return;
     this.loading = true;
+
     try {
       const data = await api.getRoutes();
+      this.setCapabilities(data);
       this.routes = {
         video: data.video || {},
         audio: data.audio || {},
@@ -123,6 +157,7 @@ export class RoutingMatrix {
       };
       this.raw = data.raw || '';
       this.updateGrid();
+
       const rawEl = document.getElementById('route-raw');
       if (rawEl) rawEl.textContent = this.raw;
     } catch (err) {

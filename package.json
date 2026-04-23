@@ -1,16 +1,18 @@
 {
   "name": "crestron-dm-gui-tool",
   "version": "0.0.2-beta",
-  "description": "Browser-based control surface for a Crestron DM-MD8x8 matrix switcher",
+  "description": "Browser-based control surface for Crestron DM-MD matrix switchers",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "smoke": "node scripts/smoke-start.js"
+    "smoke": "node scripts/smoke-start.js",
+    "test": "node --test"
   },
   "keywords": [
     "crestron",
     "dm-md8x8",
+    "dm-md16x16",
     "matrix-switcher",
     "audiovisual",
     "av-integration"
@@ -31,6 +33,7 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "ssh2": "^1.15.0",
     "ws": "^8.18.1"
   }
 }
