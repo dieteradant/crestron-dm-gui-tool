@@ -4,7 +4,7 @@ Browser-based control surface for Crestron DM-MD matrix switchers.
 
 This project provides a lightweight Node.js server and browser UI for routing, status inspection, EDID and HDCP views, network/system queries, and raw console access over either the device's CTP interface or an SSH shell session.
 
-Current release line: `0.0.2 Beta`
+Current release line: `0.0.3 Beta`
 
 ## Screenshots
 
