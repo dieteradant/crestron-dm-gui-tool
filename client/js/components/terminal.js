@@ -44,7 +44,9 @@ export class TerminalPanel {
 
     // Small delay to ensure DOM is ready for fit
     requestAnimationFrame(() => {
-      try { this.fitAddon.fit(); } catch {}
+      try {
+        this.fitAddon.fit();
+      } catch {}
     });
 
     // Remove buffer handler, set up real handler
@@ -72,7 +74,9 @@ export class TerminalPanel {
     // Resize handler
     this._resizeObserver = new ResizeObserver(() => {
       requestAnimationFrame(() => {
-        try { this.fitAddon.fit(); } catch {}
+        try {
+          this.fitAddon.fit();
+        } catch {}
       });
     });
     this._resizeObserver.observe(document.getElementById('terminal-container'));
@@ -110,7 +114,9 @@ export class TerminalPanel {
     this.init();
     if (this.fitAddon) {
       requestAnimationFrame(() => {
-        try { this.fitAddon.fit(); } catch {}
+        try {
+          this.fitAddon.fit();
+        } catch {}
       });
     }
     if (this.term) this.term.focus();

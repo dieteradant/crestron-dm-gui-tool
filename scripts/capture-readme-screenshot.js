@@ -6,7 +6,7 @@ const OUTPUT_DIR = path.join(__dirname, '..', 'docs', 'assets');
 const OUTPUT_PATHS = {
   routing: path.join(OUTPUT_DIR, 'app-screenshot.png'),
   status: path.join(OUTPUT_DIR, 'status-screenshot.png'),
-  system: path.join(OUTPUT_DIR, 'system-screenshot.png')
+  system: path.join(OUTPUT_DIR, 'system-screenshot.png'),
 };
 
 const connectionState = {
@@ -15,7 +15,7 @@ const connectionState = {
   configured: true,
   host: 'demo-switch.local',
   port: 41795,
-  prompt: 'DM-MD8x8>'
+  prompt: 'DM-MD8x8>',
 };
 
 const routePayload = {
@@ -28,22 +28,94 @@ const routePayload = {
     'Audio Routed From Input Card at slot 1',
     'Routing Information for Output Card at Slot 18',
     'Video Routed From Input Card at slot 3',
-    'Audio Routed From Input Card at slot 3'
-  ].join('\n')
+    'Audio Routed From Input Card at slot 3',
+  ].join('\n'),
 };
 
 const cardsPayload = {
   cards: [
-    { slot: 1, type: 'DMC-4K-HD', description: 'HDMI 4K Input Card', firmware: '1.2911.00108', stream: 'b0.0', role: 'input', portNum: 1 },
-    { slot: 2, type: 'DMC-4K-HD', description: 'HDMI 4K Input Card', firmware: '1.2911.00108', stream: 'b1.0', role: 'input', portNum: 2 },
-    { slot: 3, type: 'DMC-4K-C', description: 'DM 8G+ Input Card', firmware: '1.2874.00042', stream: 'b2.0', role: 'input', portNum: 3 },
-    { slot: 4, type: 'DMC-4K-C', description: 'DM 8G+ Input Card', firmware: '1.2874.00042', stream: 'b3.0', role: 'input', portNum: 4 },
-    { slot: 17, type: 'DMC-4K-HD', description: 'HDMI 4K Output Card', firmware: '1.2911.00108', stream: 'c0.0', role: 'output', portNum: 1 },
-    { slot: 18, type: 'DMC-4K-HD', description: 'HDMI 4K Output Card', firmware: '1.2911.00108', stream: 'c1.0', role: 'output', portNum: 2 },
-    { slot: 19, type: 'DMC-4K-C', description: 'DM 8G+ Output Card', firmware: '1.2874.00042', stream: 'c2.0', role: 'output', portNum: 3 },
-    { slot: 20, type: 'DMC-4K-C', description: 'DM 8G+ Output Card', firmware: '1.2874.00042', stream: 'c3.0', role: 'output', portNum: 4 },
-    { slot: 33, type: 'CNTRL', description: 'Control Engine', firmware: '4.102.352400074', stream: null, role: 'system', portNum: null }
-  ]
+    {
+      slot: 1,
+      type: 'DMC-4K-HD',
+      description: 'HDMI 4K Input Card',
+      firmware: '1.2911.00108',
+      stream: 'b0.0',
+      role: 'input',
+      portNum: 1,
+    },
+    {
+      slot: 2,
+      type: 'DMC-4K-HD',
+      description: 'HDMI 4K Input Card',
+      firmware: '1.2911.00108',
+      stream: 'b1.0',
+      role: 'input',
+      portNum: 2,
+    },
+    {
+      slot: 3,
+      type: 'DMC-4K-C',
+      description: 'DM 8G+ Input Card',
+      firmware: '1.2874.00042',
+      stream: 'b2.0',
+      role: 'input',
+      portNum: 3,
+    },
+    {
+      slot: 4,
+      type: 'DMC-4K-C',
+      description: 'DM 8G+ Input Card',
+      firmware: '1.2874.00042',
+      stream: 'b3.0',
+      role: 'input',
+      portNum: 4,
+    },
+    {
+      slot: 17,
+      type: 'DMC-4K-HD',
+      description: 'HDMI 4K Output Card',
+      firmware: '1.2911.00108',
+      stream: 'c0.0',
+      role: 'output',
+      portNum: 1,
+    },
+    {
+      slot: 18,
+      type: 'DMC-4K-HD',
+      description: 'HDMI 4K Output Card',
+      firmware: '1.2911.00108',
+      stream: 'c1.0',
+      role: 'output',
+      portNum: 2,
+    },
+    {
+      slot: 19,
+      type: 'DMC-4K-C',
+      description: 'DM 8G+ Output Card',
+      firmware: '1.2874.00042',
+      stream: 'c2.0',
+      role: 'output',
+      portNum: 3,
+    },
+    {
+      slot: 20,
+      type: 'DMC-4K-C',
+      description: 'DM 8G+ Output Card',
+      firmware: '1.2874.00042',
+      stream: 'c3.0',
+      role: 'output',
+      portNum: 4,
+    },
+    {
+      slot: 33,
+      type: 'CNTRL',
+      description: 'Control Engine',
+      firmware: '4.102.352400074',
+      stream: null,
+      role: 'system',
+      portNum: null,
+    },
+  ],
 };
 
 const versionPayload = {
@@ -54,28 +126,19 @@ const versionPayload = {
     'Hostname: demo-switch.local',
     'IP: DHCP enabled',
     'CPU Temp: 38 C',
-    'Fan State: normal'
+    'Fan State: normal',
   ].join('\n'),
-  raw: 'DM-MD8x8 Cntrl Eng [v4.102.352400074 (Sep 23 2019), #00FFC818]'
+  raw: 'DM-MD8x8 Cntrl Eng [v4.102.352400074 (Sep 23 2019), #00FFC818]',
 };
 
 const uptimePayload = {
   uptime: '12 days 04:21:33',
-  raw: '12 days 04:21:33'
+  raw: '12 days 04:21:33',
 };
 
 const errorsPayload = {
-  entries: [
-    'No active faults',
-    'Fan speed nominal',
-    'Temperature nominal'
-  ],
-  raw: [
-    'Error Log',
-    'No active faults',
-    'Fan speed nominal',
-    'Temperature nominal'
-  ].join('\n')
+  entries: ['No active faults', 'Fan speed nominal', 'Temperature nominal'],
+  raw: ['Error Log', 'No active faults', 'Fan speed nominal', 'Temperature nominal'].join('\n'),
 };
 
 async function updateQueueIndicator(page, text) {
@@ -112,7 +175,7 @@ async function main() {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 980 },
     colorScheme: 'dark',
-    deviceScaleFactor: 1
+    deviceScaleFactor: 1,
   });
 
   await page.addInitScript((initialConnection) => {
@@ -159,7 +222,7 @@ async function main() {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(connectionState)
+      body: JSON.stringify(connectionState),
     });
   });
 
@@ -167,7 +230,7 @@ async function main() {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(routePayload)
+      body: JSON.stringify(routePayload),
     });
   });
 
@@ -175,7 +238,7 @@ async function main() {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(cardsPayload)
+      body: JSON.stringify(cardsPayload),
     });
   });
 
@@ -183,7 +246,7 @@ async function main() {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(versionPayload)
+      body: JSON.stringify(versionPayload),
     });
   });
 
@@ -191,7 +254,7 @@ async function main() {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(uptimePayload)
+      body: JSON.stringify(uptimePayload),
     });
   });
 
@@ -199,7 +262,7 @@ async function main() {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(errorsPayload)
+      body: JSON.stringify(errorsPayload),
     });
   });
 

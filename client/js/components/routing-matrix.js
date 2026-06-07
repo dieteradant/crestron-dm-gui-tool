@@ -18,10 +18,19 @@ export class RoutingMatrix {
   }
 
   setCapabilities(capabilities = {}) {
-    const nextInputCount = Number.isInteger(capabilities.inputCount) && capabilities.inputCount > 0 ? capabilities.inputCount : 0;
-    const nextOutputCount = Number.isInteger(capabilities.outputCount) && capabilities.outputCount > 0 ? capabilities.outputCount : 0;
+    const nextInputCount =
+      Number.isInteger(capabilities.inputCount) && capabilities.inputCount > 0
+        ? capabilities.inputCount
+        : 0;
+    const nextOutputCount =
+      Number.isInteger(capabilities.outputCount) && capabilities.outputCount > 0
+        ? capabilities.outputCount
+        : 0;
     const nextModel = capabilities.model || null;
-    const changed = nextInputCount !== this.inputCount || nextOutputCount !== this.outputCount || nextModel !== this.model;
+    const changed =
+      nextInputCount !== this.inputCount ||
+      nextOutputCount !== this.outputCount ||
+      nextModel !== this.model;
 
     this.inputCount = nextInputCount;
     this.outputCount = nextOutputCount;
@@ -48,14 +57,18 @@ export class RoutingMatrix {
         <button class="btn btn-secondary btn-sm" id="route-refresh">Refresh</button>
         <button class="btn btn-secondary btn-sm" id="route-raw-toggle">Raw</button>
       </div>
-      ${hasMatrix ? `
+      ${
+        hasMatrix
+          ? `
         <div class="matrix-wrapper">
           <div class="matrix" id="routing-grid" style="grid-template-columns: 80px repeat(${this.outputCount}, 52px);">
             ${this._renderHeaders()}
             ${this._renderRows()}
           </div>
         </div>
-      ` : '<div class="loading">Connect to a switcher to load the routing grid.</div>'}
+      `
+          : '<div class="loading">Connect to a switcher to load the routing grid.</div>'
+      }
       <div class="raw-output" id="route-raw" style="display:none; margin-top:12px;"></div>
     `;
 

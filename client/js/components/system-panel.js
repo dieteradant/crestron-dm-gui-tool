@@ -94,14 +94,18 @@ export class SystemPanel {
         { label: 'Model', value: ver.model },
         { label: 'Serial', value: ver.serial },
         { label: 'Uptime', value: uptime.uptime },
-      ].filter(f => f.value);
+      ].filter((f) => f.value);
 
-      infoEl.innerHTML = fields.map(f => `
+      infoEl.innerHTML = fields
+        .map(
+          (f) => `
         <div class="info-item">
           <div class="info-label">${f.label}</div>
           <div class="info-value">${f.value}</div>
         </div>
-      `).join('');
+      `
+        )
+        .join('');
 
       if (ver.info) {
         infoEl.innerHTML += `<div class="info-item" style="grid-column:1/-1"><div class="info-label">Info</div><div class="info-value" style="font-size:11px;white-space:pre-wrap;">${ver.info}</div></div>`;
@@ -151,7 +155,9 @@ export class SystemPanel {
     document.body.appendChild(overlay);
 
     overlay.querySelector('#reboot-cancel').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
 
     overlay.querySelector('#reboot-confirm').addEventListener('click', async () => {
       overlay.remove();

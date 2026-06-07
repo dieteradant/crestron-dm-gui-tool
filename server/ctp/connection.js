@@ -3,7 +3,7 @@ const RawSocketTransport = require('./transports/raw-socket');
 const SshShellTransport = require('./transports/ssh-shell');
 const { normalizeConnectionConfig } = require('./connection-config');
 
-const PROMPT_PATTERN = /^([A-Za-z0-9][A-Za-z0-9\-]+> ?)/m;
+const PROMPT_PATTERN = /^([A-Za-z0-9][A-Za-z0-9-]+> ?)/m;
 const TRANSPORTS = {
   ctp: RawSocketTransport,
   ssh: SshShellTransport,
@@ -12,9 +12,10 @@ const TRANSPORTS = {
 class SwitcherConnection extends EventEmitter {
   constructor(hostOrConfig, port) {
     super();
-    const config = typeof hostOrConfig === 'object'
-      ? normalizeConnectionConfig(hostOrConfig)
-      : normalizeConnectionConfig({ host: hostOrConfig, port });
+    const config =
+      typeof hostOrConfig === 'object'
+        ? normalizeConnectionConfig(hostOrConfig)
+        : normalizeConnectionConfig({ host: hostOrConfig, port });
 
     this.host = config.host;
     this.port = config.port;
@@ -45,9 +46,10 @@ class SwitcherConnection extends EventEmitter {
   }
 
   reconnectTo(hostOrConfig, port) {
-    const nextConfig = typeof hostOrConfig === 'object'
-      ? normalizeConnectionConfig(hostOrConfig, this._currentConfig())
-      : normalizeConnectionConfig({ host: hostOrConfig, port }, this._currentConfig());
+    const nextConfig =
+      typeof hostOrConfig === 'object'
+        ? normalizeConnectionConfig(hostOrConfig, this._currentConfig())
+        : normalizeConnectionConfig({ host: hostOrConfig, port }, this._currentConfig());
 
     this.host = nextConfig.host;
     this.port = nextConfig.port;
@@ -69,7 +71,9 @@ class SwitcherConnection extends EventEmitter {
     this._transport = new Transport(this._currentConfig());
 
     this._transport.on('ready', () => {
-      console.log(`[Connection] ${this.transport.toUpperCase()} transport ready for ${this._displayTarget()}`);
+      console.log(
+        `[Connection] ${this.transport.toUpperCase()} transport ready for ${this._displayTarget()}`
+      );
       this._reconnectDelay = 1000;
     });
 
@@ -117,7 +121,9 @@ class SwitcherConnection extends EventEmitter {
 
   _scheduleReconnect() {
     if (!this._shouldReconnect) return;
-    console.log(`[Connection] Reconnecting to ${this._displayTarget()} in ${this._reconnectDelay}ms...`);
+    console.log(
+      `[Connection] Reconnecting to ${this._displayTarget()} in ${this._reconnectDelay}ms...`
+    );
     this._reconnectTimer = setTimeout(() => {
       this._createSocket();
     }, this._reconnectDelay);

@@ -38,8 +38,8 @@ function getMaxStreamPort(cards, role) {
 
 function inferOutputSlotOffset(cards, inputCount) {
   const outputSlots = cards
-    .filter(card => card.streamInfo?.role === 'output')
-    .map(card => card.slot)
+    .filter((card) => card.streamInfo?.role === 'output')
+    .map((card) => card.slot)
     .filter(Number.isInteger);
 
   if (outputSlots.length > 0) {
@@ -50,16 +50,29 @@ function inferOutputSlotOffset(cards, inputCount) {
 }
 
 function resolveCardLayout(cards, options = {}) {
-  const modelDimensions = parseModelDimensions(options.model) || parseModelDimensions(options.prompt);
-  const inputCount = toPositiveInt(options.inputCount) || modelDimensions?.inputCount || getMaxStreamPort(cards, 'input') || 16;
-  const outputCount = toPositiveInt(options.outputCount) || modelDimensions?.outputCount || getMaxStreamPort(cards, 'output') || inputCount;
-  const outputSlotOffset = toPositiveInt(options.outputSlotOffset) || modelDimensions?.inputCount || inferOutputSlotOffset(cards, inputCount) || inputCount;
+  const modelDimensions =
+    parseModelDimensions(options.model) || parseModelDimensions(options.prompt);
+  const inputCount =
+    toPositiveInt(options.inputCount) ||
+    modelDimensions?.inputCount ||
+    getMaxStreamPort(cards, 'input') ||
+    16;
+  const outputCount =
+    toPositiveInt(options.outputCount) ||
+    modelDimensions?.outputCount ||
+    getMaxStreamPort(cards, 'output') ||
+    inputCount;
+  const outputSlotOffset =
+    toPositiveInt(options.outputSlotOffset) ||
+    modelDimensions?.inputCount ||
+    inferOutputSlotOffset(cards, inputCount) ||
+    inputCount;
 
   return { inputCount, outputCount, outputSlotOffset };
 }
 
 function stripInternalCardFields(card) {
-  const { streamInfo, ...cleanCard } = card;
+  const { streamInfo: _streamInfo, ...cleanCard } = card;
   return cleanCard;
 }
 
@@ -84,7 +97,7 @@ function parseRoutes(raw, options = {}) {
     const slotNum = parseInt(sections[i]);
     const body = sections[i + 1] || '';
 
-    const outNum = outputSlotMap[slotNum] || (slotNum - outputSlotOffset);
+    const outNum = outputSlotMap[slotNum] || slotNum - outputSlotOffset;
     if (outNum < 1) continue;
     if (outputCount && outNum > outputCount) continue;
 
@@ -116,7 +129,9 @@ function parseCards(raw, options = {}) {
 
   for (const line of lines) {
     // Format: "  1: DMC-4K-HD HDMI 4K Input Card [v1.2911.00108, #00EB3249] Stream:b0.0"
-    const match = line.match(/^\s*(\d+):\s+(\S+)\s+(.+?)(?:\s+\[v([\d.]+),\s*#([A-Fa-f0-9]+)\])?\s*(?:Stream:(\S+))?$/);
+    const match = line.match(
+      /^\s*(\d+):\s+(\S+)\s+(.+?)(?:\s+\[v([\d.]+),\s*#([A-Fa-f0-9]+)\])?\s*(?:Stream:(\S+))?$/
+    );
     if (match) {
       const slot = parseInt(match[1]);
       const type = match[2];
@@ -146,7 +161,10 @@ function parseCards(raw, options = {}) {
     } else if (card.slot >= 1 && card.slot <= layout.inputCount) {
       role = 'input';
       portNum = card.slot;
-    } else if (card.slot > layout.outputSlotOffset && card.slot <= layout.outputSlotOffset + layout.outputCount) {
+    } else if (
+      card.slot > layout.outputSlotOffset &&
+      card.slot <= layout.outputSlotOffset + layout.outputCount
+    ) {
       role = 'output';
       portNum = card.slot - layout.outputSlotOffset;
     }
@@ -278,5 +296,5 @@ module.exports = {
   parseUptime,
   parseMemory,
   parseTop,
-  buildDeviceCapabilities
+  buildDeviceCapabilities,
 };

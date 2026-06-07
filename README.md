@@ -70,14 +70,14 @@ If `SWITCHER_HOST` is left blank, the web UI starts in a disconnected state and 
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `SWITCHER_HOST` | No | empty | Hostname or IP of the target switcher. Leave blank to start disconnected. |
-| `SWITCHER_TRANSPORT` | No | `ctp` | Console transport to use: `ctp` or `ssh`. |
-| `SWITCHER_PORT` | No | `41795` for `ctp`, `22` for `ssh` | Port used for the switcher connection. |
-| `SWITCHER_USERNAME` | No | empty | SSH username. Required when `SWITCHER_TRANSPORT=ssh`. |
-| `SWITCHER_PASSWORD` | No | empty | SSH password. Leave blank if the device accepts an empty password. |
-| `SERVER_PORT` | No | `3000` | Local port for the Node.js web server. |
+| Variable             | Required | Default                           | Description                                                               |
+| -------------------- | -------- | --------------------------------- | ------------------------------------------------------------------------- |
+| `SWITCHER_HOST`      | No       | empty                             | Hostname or IP of the target switcher. Leave blank to start disconnected. |
+| `SWITCHER_TRANSPORT` | No       | `ctp`                             | Console transport to use: `ctp` or `ssh`.                                 |
+| `SWITCHER_PORT`      | No       | `41795` for `ctp`, `22` for `ssh` | Port used for the switcher connection.                                    |
+| `SWITCHER_USERNAME`  | No       | empty                             | SSH username. Required when `SWITCHER_TRANSPORT=ssh`.                     |
+| `SWITCHER_PASSWORD`  | No       | empty                             | SSH password. Leave blank if the device accepts an empty password.        |
+| `SERVER_PORT`        | No       | `3000`                            | Local port for the Node.js web server.                                    |
 
 ## Usage Notes
 

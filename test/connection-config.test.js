@@ -39,7 +39,7 @@ test('normalizeConnectionConfig trims host and username and defaults ssh to port
 test('normalizeConnectionConfig does not carry a stale ctp port into ssh', () => {
   const config = normalizeConnectionConfig(
     { transport: 'ssh', username: 'crestron' },
-    { host: '192.168.99.192', port: 41795, transport: 'ctp' },
+    { host: '192.168.99.192', port: 41795, transport: 'ctp' }
   );
 
   assert.equal(config.host, '192.168.99.192');

@@ -52,7 +52,7 @@ class WSHandler {
       transport: this.connection.transport,
       username: this.connection.username || '',
       hasPassword: Boolean(this.connection.password),
-      prompt: this.connection.promptPattern
+      prompt: this.connection.promptPattern,
     };
   }
 
