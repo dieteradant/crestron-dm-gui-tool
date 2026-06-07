@@ -6,10 +6,7 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const SwitcherConnection = require('./ctp/connection');
-const {
-  defaultPortForTransport,
-  normalizeConnectionConfig,
-} = require('./ctp/connection-config');
+const { defaultPortForTransport, normalizeConnectionConfig } = require('./ctp/connection-config');
 const CommandQueue = require('./ctp/command-queue');
 const DeviceCapabilitiesService = require('./ctp/device-capabilities');
 const WSHandler = require('./ws/handler');
@@ -17,6 +14,7 @@ const createRoutingRouter = require('./routes/routing');
 const createStatusRouter = require('./routes/status');
 const createSystemRouter = require('./routes/system');
 const createNetworkRouter = require('./routes/network');
+const { commandLimiter, mutationLimiter, readLimiter } = require('./rate-limits');
 
 const DEFAULT_SERVER_PORT = 3000;
 
@@ -40,7 +38,9 @@ const commandQueue = new CommandQueue(switcherConnection);
 const deviceCapabilities = new DeviceCapabilitiesService(commandQueue, switcherConnection);
 
 switcherConnection.on('connected', () => {
-  console.log(`[Server] ${switcherConnection.transport.toUpperCase()} connected to ${switcherConnection.host}:${switcherConnection.port}`);
+  console.log(
+    `[Server] ${switcherConnection.transport.toUpperCase()} connected to ${switcherConnection.host}:${switcherConnection.port}`
+  );
 });
 
 switcherConnection.on('disconnected', () => {
@@ -57,10 +57,12 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'client')));
 
 // API routes
-app.use('/api', createRoutingRouter(commandQueue, deviceCapabilities));
-app.use('/api', createStatusRouter(commandQueue, deviceCapabilities));
-app.use('/api', createSystemRouter(commandQueue));
-app.use('/api', createNetworkRouter(commandQueue));
+app.use('/api', readLimiter);
+app.use('/api/routes', mutationLimiter, createRoutingRouter(commandQueue, deviceCapabilities));
+app.use('/api/route', mutationLimiter, createRoutingRouter(commandQueue, deviceCapabilities));
+app.use('/api', readLimiter, createStatusRouter(commandQueue, deviceCapabilities));
+app.use('/api', readLimiter, createSystemRouter(commandQueue));
+app.use('/api', readLimiter, createNetworkRouter(commandQueue));
 
 app.get('/api/capabilities', async (req, res) => {
   try {
@@ -81,7 +83,7 @@ app.get('/api/connection', (req, res) => {
     transport: switcherConnection.transport,
     username: switcherConnection.username || '',
     hasPassword: Boolean(switcherConnection.password),
-    prompt: switcherConnection.promptPattern
+    prompt: switcherConnection.promptPattern,
   });
 });
 
@@ -106,7 +108,9 @@ app.post('/api/connection', (req, res) => {
     connectionConfig.port = defaultPortForTransport(connectionConfig.transport);
   }
 
-  console.log(`[Server] Reconnecting via ${connectionConfig.transport.toUpperCase()} to ${connectionConfig.host}:${connectionConfig.port}`);
+  console.log(
+    `[Server] Reconnecting via ${connectionConfig.transport.toUpperCase()} to ${connectionConfig.host}:${connectionConfig.port}`
+  );
   deviceCapabilities.invalidate();
   switcherConnection.reconnectTo(connectionConfig);
   res.json({
@@ -121,7 +125,7 @@ app.post('/api/connection', (req, res) => {
 });
 
 // Raw command endpoint for the active console transport
-app.post('/api/command', async (req, res) => {
+app.post('/api/command', commandLimiter, async (req, res) => {
   const { command, timeout } = req.body;
   if (!command) return res.status(400).json({ error: 'command required' });
   try {
@@ -135,7 +139,7 @@ app.post('/api/command', async (req, res) => {
 // --- HTTP + WebSocket Server ---
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
-const wsHandler = new WSHandler(wss, switcherConnection, commandQueue);
+new WSHandler(wss, switcherConnection, commandQueue);
 
 server.listen(SERVER_PORT, () => {
   const address = server.address();
@@ -143,9 +147,13 @@ server.listen(SERVER_PORT, () => {
 
   console.log(`[Server] GUI running at http://localhost:${listenPort}`);
   if (switcherConnection.isConfigured) {
-    console.log(`[Server] Attempting ${switcherConnection.transport.toUpperCase()} connection to ${switcherConnection.host}:${switcherConnection.port}`);
+    console.log(
+      `[Server] Attempting ${switcherConnection.transport.toUpperCase()} connection to ${switcherConnection.host}:${switcherConnection.port}`
+    );
   } else {
-    console.log('[Server] No switcher configured. Set SWITCHER_HOST or use the Connect button in the UI.');
+    console.log(
+      '[Server] No switcher configured. Set SWITCHER_HOST or use the Connect button in the UI.'
+    );
   }
 });
 

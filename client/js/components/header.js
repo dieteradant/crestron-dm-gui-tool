@@ -60,11 +60,15 @@ export class Header {
         </div>
       </div>
       <nav class="nav-tabs" id="nav-tabs">
-        ${this.tabs.map(t => `
+        ${this.tabs
+          .map(
+            (t) => `
           <div class="nav-tab ${t.id === this.activeTab ? 'active' : ''}" data-tab="${t.id}">
             ${t.label}<span class="shortcut">^${t.key}</span>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </nav>
     `;
   }
@@ -136,7 +140,10 @@ export class Header {
         prompt: null,
       });
       document.getElementById('conn-settings').style.display = 'none';
-      window.app?.toast(`Connecting via ${transport.toUpperCase()} to ${host}:${portValue || defaultPort}...`, 'info');
+      window.app?.toast(
+        `Connecting via ${transport.toUpperCase()} to ${host}:${portValue || defaultPort}...`,
+        'info'
+      );
     } catch (err) {
       window.app?.toast(`Connect failed: ${err.message}`, 'error');
     }
@@ -177,7 +184,7 @@ export class Header {
 
   setTab(tabId) {
     this.activeTab = tabId;
-    document.querySelectorAll('.nav-tab').forEach(el => {
+    document.querySelectorAll('.nav-tab').forEach((el) => {
       el.classList.toggle('active', el.dataset.tab === tabId);
     });
     this.onTabChange(tabId);
@@ -195,7 +202,9 @@ export class Header {
       label.textContent = 'No switcher configured';
       return;
     }
-    label.textContent = connected ? (prompt || `${this.transport.toUpperCase()} connected`) : `${this.transport.toUpperCase()} disconnected`;
+    label.textContent = connected
+      ? prompt || `${this.transport.toUpperCase()} connected`
+      : `${this.transport.toUpperCase()} disconnected`;
   }
 
   updateTransportFields(transport) {

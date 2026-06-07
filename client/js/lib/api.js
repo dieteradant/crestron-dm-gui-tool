@@ -5,7 +5,7 @@ async function request(path, options = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -15,28 +15,35 @@ async function request(path, options = {}) {
 export const api = {
   // Connection
   connection: () => request('/connection'),
-  connect: (hostOrConfig, port, transport = 'ctp', username = '', password = '') => request('/connection', {
-    method: 'POST',
-    body: typeof hostOrConfig === 'object'
-      ? hostOrConfig
-      : { host: hostOrConfig, port, transport, username, password }
-  }),
+  connect: (hostOrConfig, port, transport = 'ctp', username = '', password = '') =>
+    request('/connection', {
+      method: 'POST',
+      body:
+        typeof hostOrConfig === 'object'
+          ? hostOrConfig
+          : { host: hostOrConfig, port, transport, username, password },
+    }),
   getCapabilities: () => request('/capabilities'),
 
   // Routing
   getRoutes: () => request('/routes'),
-  setVideoRoute: (input, output) => request('/route/video', { method: 'POST', body: { input, output } }),
-  setAudioRoute: (input, output) => request('/route/audio', { method: 'POST', body: { input, output } }),
-  setUsbRoute: (input, output) => request('/route/usb', { method: 'POST', body: { input, output } }),
+  setVideoRoute: (input, output) =>
+    request('/route/video', { method: 'POST', body: { input, output } }),
+  setAudioRoute: (input, output) =>
+    request('/route/audio', { method: 'POST', body: { input, output } }),
+  setUsbRoute: (input, output) =>
+    request('/route/usb', { method: 'POST', body: { input, output } }),
   setAvRoute: (input, output) => request('/route/av', { method: 'POST', body: { input, output } }),
-  setAvuRoute: (input, output) => request('/route/avu', { method: 'POST', body: { input, output } }),
+  setAvuRoute: (input, output) =>
+    request('/route/avu', { method: 'POST', body: { input, output } }),
 
   // Status
   getCards: () => request('/cards'),
   getEdid: () => request('/edid'),
   getEdidInput: (port) => request(`/edid/input/${port}`),
   getEdidOutput: (port) => request(`/edid/output/${port}`),
-  copyTxEdid: (source, destination) => request('/edid/copy-tx', { method: 'POST', body: { source, destination } }),
+  copyTxEdid: (source, destination) =>
+    request('/edid/copy-tx', { method: 'POST', body: { source, destination } }),
   forceEdid: (port) => request('/edid/force', { method: 'POST', body: { port } }),
   forceDefaultEdid: (port) => request('/edid/force-default', { method: 'POST', body: { port } }),
   getEdidLockout: () => request('/edid/lockout'),
@@ -63,5 +70,6 @@ export const api = {
   getStreams: () => request('/dm/streams'),
 
   // Raw command
-  command: (command, timeout) => request('/command', { method: 'POST', body: { command, timeout } }),
+  command: (command, timeout) =>
+    request('/command', { method: 'POST', body: { command, timeout } }),
 };

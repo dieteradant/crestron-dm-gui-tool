@@ -44,9 +44,15 @@ export class StatusPanel {
 
   bindEvents() {
     this.el.querySelector('#status-refresh').addEventListener('click', () => this.refresh());
-    this.el.querySelector('#topology-refresh').addEventListener('click', () => this.loadDM('topology'));
-    this.el.querySelector('#endpoints-refresh').addEventListener('click', () => this.loadDM('endpoints'));
-    this.el.querySelector('#streams-refresh').addEventListener('click', () => this.loadDM('streams'));
+    this.el
+      .querySelector('#topology-refresh')
+      .addEventListener('click', () => this.loadDM('topology'));
+    this.el
+      .querySelector('#endpoints-refresh')
+      .addEventListener('click', () => this.loadDM('endpoints'));
+    this.el
+      .querySelector('#streams-refresh')
+      .addEventListener('click', () => this.loadDM('streams'));
   }
 
   _renderCardsTable(cards) {
@@ -55,7 +61,9 @@ export class StatusPanel {
       <table class="data-table">
         <thead><tr><th>Slot</th><th>Port</th><th>Type</th><th>Description</th><th>Firmware</th><th>Stream</th></tr></thead>
         <tbody>
-          ${cards.map(c => `
+          ${cards
+            .map(
+              (c) => `
             <tr>
               <td>${c.slot}</td>
               <td>${c.portNum ?? '-'}</td>
@@ -64,7 +72,9 @@ export class StatusPanel {
               <td style="color:var(--text-dim)">${c.firmware || '-'}</td>
               <td style="color:var(--text-dim)">${c.stream || '-'}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;
@@ -78,9 +88,9 @@ export class StatusPanel {
 
     try {
       const data = await api.getCards();
-      const inputs = (data.cards || []).filter(c => c.role === 'input');
-      const outputs = (data.cards || []).filter(c => c.role === 'output');
-      const system = (data.cards || []).filter(c => c.role === 'system');
+      const inputs = (data.cards || []).filter((c) => c.role === 'input');
+      const outputs = (data.cards || []).filter((c) => c.role === 'output');
+      const system = (data.cards || []).filter((c) => c.role === 'system');
 
       inputEl.innerHTML = this._renderCardsTable(inputs);
       outputEl.innerHTML = this._renderCardsTable(outputs);
@@ -95,7 +105,11 @@ export class StatusPanel {
     rawEl.style.display = 'block';
     rawEl.textContent = 'Loading...';
     try {
-      const fns = { topology: api.getTopology, endpoints: api.getEndpoints, streams: api.getStreams };
+      const fns = {
+        topology: api.getTopology,
+        endpoints: api.getEndpoints,
+        streams: api.getStreams,
+      };
       const data = await fns[type]();
       rawEl.textContent = data.raw || JSON.stringify(data, null, 2);
     } catch (err) {

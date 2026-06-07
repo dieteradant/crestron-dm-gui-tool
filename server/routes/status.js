@@ -54,7 +54,8 @@ function createRouter(commandQueue, deviceCapabilities) {
 
   router.post('/edid/copy-tx', async (req, res) => {
     const { source, destination } = req.body;
-    if (!source || !destination) return res.status(400).json({ error: 'source and destination required' });
+    if (!source || !destination)
+      return res.status(400).json({ error: 'source and destination required' });
     try {
       const raw = await commandQueue.execute(`COPYTXEDID ${source} ${destination}`);
       res.json({ success: true, raw });

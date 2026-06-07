@@ -41,7 +41,7 @@ class App {
     this.header = new Header(
       this.wsClient,
       (tabId) => this.switchPanel(tabId),
-      (state) => this.handleConnectionState(state),
+      (state) => this.handleConnectionState(state)
     );
 
     this.panels = {
@@ -73,11 +73,12 @@ class App {
 
   handleConnectionState(state) {
     const previous = this.connectionState;
-    const targetChanged = previous.host !== state.host
-      || previous.port !== state.port
-      || previous.transport !== state.transport
-      || previous.username !== state.username
-      || previous.configured !== state.configured;
+    const targetChanged =
+      previous.host !== state.host ||
+      previous.port !== state.port ||
+      previous.transport !== state.transport ||
+      previous.username !== state.username ||
+      previous.configured !== state.configured;
     const becameConnected = state.connected && !previous.connected;
     const becameDisconnected = !state.connected && previous.connected;
 
@@ -97,19 +98,24 @@ class App {
       this.applyCapabilities(null);
     }
 
-    if (this.connectionState.connected && (becameConnected || targetChanged || !this.capabilitiesKey)) {
+    if (
+      this.connectionState.connected &&
+      (becameConnected || targetChanged || !this.capabilitiesKey)
+    ) {
       this.loadCapabilities();
     }
   }
 
   applyCapabilities(capabilities) {
-    this.deviceCapabilities = capabilities ? {
-      model: capabilities.model || null,
-      inputCount: capabilities.inputCount || 0,
-      outputCount: capabilities.outputCount || 0,
-      outputSlotOffset: capabilities.outputSlotOffset || 0,
-      cards: capabilities.cards || [],
-    } : createEmptyCapabilities();
+    this.deviceCapabilities = capabilities
+      ? {
+          model: capabilities.model || null,
+          inputCount: capabilities.inputCount || 0,
+          outputCount: capabilities.outputCount || 0,
+          outputSlotOffset: capabilities.outputSlotOffset || 0,
+          cards: capabilities.cards || [],
+        }
+      : createEmptyCapabilities();
 
     Object.values(this.panels).forEach((panel) => {
       if (typeof panel?.setCapabilities === 'function') {

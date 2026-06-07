@@ -40,17 +40,22 @@ export class NetworkPanel {
         { label: 'Gateway', value: data.gateway },
         { label: 'DHCP', value: data.dhcp },
         { label: 'Hostname', value: data.hostname },
-      ].filter(f => f.value);
+      ].filter((f) => f.value);
 
       if (fields.length > 0) {
-        infoEl.innerHTML = fields.map(f => `
+        infoEl.innerHTML = fields
+          .map(
+            (f) => `
           <div class="info-item">
             <div class="info-label">${f.label}</div>
             <div class="info-value">${f.value}</div>
           </div>
-        `).join('');
+        `
+          )
+          .join('');
       } else {
-        infoEl.innerHTML = '<div class="loading">No structured data parsed — see raw output below</div>';
+        infoEl.innerHTML =
+          '<div class="loading">No structured data parsed — see raw output below</div>';
       }
       rawEl.textContent = data.raw || '';
     } catch (err) {

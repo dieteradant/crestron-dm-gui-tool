@@ -1,5 +1,5 @@
 const express = require('express');
-const { parseVersion, parseErrLog, parseUptime, parseMemory, parseTop } = require('../ctp/parser');
+const { parseVersion, parseErrLog, parseUptime, parseTop } = require('../ctp/parser');
 
 function createRouter(commandQueue) {
   const router = express.Router();

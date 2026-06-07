@@ -7,9 +7,9 @@ const child = spawn(process.execPath, [serverEntry], {
     ...process.env,
     SERVER_PORT: '0',
     SWITCHER_HOST: '',
-    SWITCHER_PORT: '41795'
+    SWITCHER_PORT: '41795',
   },
-  stdio: ['ignore', 'pipe', 'pipe']
+  stdio: ['ignore', 'pipe', 'pipe'],
 });
 
 let done = false;

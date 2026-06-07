@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  smoke:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,5 +23,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Test
+        run: npm test
+
+      - name: Coverage
+        run: npm run test:cov
+
       - name: Smoke test startup
         run: npm run smoke
+
+      - name: Audit
+        run: npm run audit
+
+  # keep a minimal smoke job name for branch protection if needed
+  smoke:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Quality gate passed"

@@ -12,8 +12,14 @@ export class EdidPanel {
   }
 
   setCapabilities(capabilities = {}) {
-    this.inputCount = Number.isInteger(capabilities.inputCount) && capabilities.inputCount > 0 ? capabilities.inputCount : 0;
-    this.outputCount = Number.isInteger(capabilities.outputCount) && capabilities.outputCount > 0 ? capabilities.outputCount : 0;
+    this.inputCount =
+      Number.isInteger(capabilities.inputCount) && capabilities.inputCount > 0
+        ? capabilities.inputCount
+        : 0;
+    this.outputCount =
+      Number.isInteger(capabilities.outputCount) && capabilities.outputCount > 0
+        ? capabilities.outputCount
+        : 0;
     this.model = capabilities.model || null;
 
     if (this.el?.innerHTML) {
@@ -26,9 +32,12 @@ export class EdidPanel {
       return '<div class="loading" style="padding:12px 0;">No ports detected yet.</div>';
     }
 
-    return Array.from({ length: count }, (_, index) => `
+    return Array.from(
+      { length: count },
+      (_, index) => `
       <button class="btn btn-secondary btn-sm edid-${type}-btn" data-port="${index + 1}">${type.toUpperCase()} ${index + 1}</button>
-    `).join('');
+    `
+    ).join('');
   }
 
   _renderPortOptions(prefix, count) {
@@ -36,7 +45,10 @@ export class EdidPanel {
       return '<option value="">No ports available</option>';
     }
 
-    return Array.from({ length: count }, (_, index) => `<option value="${index + 1}">${prefix} ${index + 1}</option>`).join('');
+    return Array.from(
+      { length: count },
+      (_, index) => `<option value="${index + 1}">${prefix} ${index + 1}</option>`
+    ).join('');
   }
 
   render() {

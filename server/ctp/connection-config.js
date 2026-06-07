@@ -32,9 +32,12 @@ function normalizeConnectionConfig(input = {}, fallback = {}) {
   const fallbackPort = transport === fallbackTransport ? fallback.port : null;
   const hostSource = input.host ?? fallback.host;
   const usernameSource = transport === 'ssh' ? (input.username ?? fallback.username) : '';
-  const passwordSource = transport === 'ssh'
-    ? (Object.prototype.hasOwnProperty.call(input, 'password') ? input.password : fallback.password)
-    : '';
+  const passwordSource =
+    transport === 'ssh'
+      ? Object.prototype.hasOwnProperty.call(input, 'password')
+        ? input.password
+        : fallback.password
+      : '';
 
   return {
     host: typeof hostSource === 'string' ? hostSource.trim() : '',

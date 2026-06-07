@@ -19,9 +19,14 @@
   --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   height: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -71,7 +76,9 @@ html, body {
   transition: background 0.3s;
 }
 
-.connection-dot.connected { background: var(--success); }
+.connection-dot.connected {
+  background: var(--success);
+}
 
 .header-title {
   font-size: 14px;
@@ -110,7 +117,7 @@ html, body {
 
 .nav-tab:hover {
   color: var(--text-primary);
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .nav-tab.active {
@@ -139,7 +146,10 @@ html, body {
   padding: 16px;
 }
 
-.panel.active { display: flex; flex-direction: column; }
+.panel.active {
+  display: flex;
+  flex-direction: column;
+}
 
 /* === Routing Matrix === */
 .routing-controls {
@@ -231,7 +241,9 @@ html, body {
 }
 
 @keyframes pulse {
-  50% { opacity: 0.6; }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .matrix-label {
@@ -264,14 +276,18 @@ html, body {
   color: white;
 }
 
-.btn-primary:hover { background: var(--accent-dim); }
+.btn-primary:hover {
+  background: var(--accent-dim);
+}
 
 .btn-secondary {
   background: var(--bg-input);
   color: var(--text-primary);
 }
 
-.btn-secondary:hover { background: var(--bg-hover); }
+.btn-secondary:hover {
+  background: var(--bg-hover);
+}
 
 .btn-danger {
   background: transparent;
@@ -279,9 +295,14 @@ html, body {
   color: var(--error);
 }
 
-.btn-danger:hover { background: rgba(248,113,113,0.1); }
+.btn-danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
 
-.btn-sm { padding: 3px 8px; font-size: 12px; }
+.btn-sm {
+  padding: 3px 8px;
+  font-size: 12px;
+}
 
 .btn:disabled {
   opacity: 0.4;
@@ -312,12 +333,12 @@ html, body {
 
 .data-table td {
   padding: 5px 10px;
-  border-bottom: 1px solid rgba(42,58,94,0.5);
+  border-bottom: 1px solid rgba(42, 58, 94, 0.5);
   color: var(--text-primary);
 }
 
 .data-table tr:hover td {
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 /* === Raw Output === */
@@ -357,7 +378,9 @@ html, body {
   margin-bottom: 20px;
 }
 
-.panel-section:last-child { margin-bottom: 0; }
+.panel-section:last-child {
+  margin-bottom: 0;
+}
 
 /* === Status badges === */
 .badge {
@@ -369,10 +392,22 @@ html, body {
   font-family: var(--font-mono);
 }
 
-.badge-ok { background: rgba(74,222,128,0.15); color: var(--success); }
-.badge-warn { background: rgba(251,191,36,0.15); color: var(--warning); }
-.badge-error { background: rgba(248,113,113,0.15); color: var(--error); }
-.badge-info { background: rgba(96,165,250,0.15); color: var(--info); }
+.badge-ok {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+.badge-warn {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--warning);
+}
+.badge-error {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--error);
+}
+.badge-info {
+  background: rgba(96, 165, 250, 0.15);
+  color: var(--info);
+}
 
 /* === Terminal Panel === */
 .terminal-panel {
@@ -426,8 +461,8 @@ html, body {
 
 .error-msg {
   color: var(--error);
-  background: rgba(248,113,113,0.08);
-  border: 1px solid rgba(248,113,113,0.2);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
   border-radius: 3px;
   padding: 8px 12px;
   font-size: 13px;
@@ -435,10 +470,20 @@ html, body {
 }
 
 /* === Scrollbars === */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-hover);
+}
 
 /* === Toast Notifications === */
 .toast-container {
@@ -460,20 +505,38 @@ html, body {
   max-width: 400px;
 }
 
-.toast-success { background: rgba(74,222,128,0.15); border: 1px solid var(--success); color: var(--success); }
-.toast-error { background: rgba(248,113,113,0.15); border: 1px solid var(--error); color: var(--error); }
-.toast-info { background: rgba(96,165,250,0.15); border: 1px solid var(--info); color: var(--info); }
+.toast-success {
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+.toast-error {
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+.toast-info {
+  background: rgba(96, 165, 250, 0.15);
+  border: 1px solid var(--info);
+  color: var(--info);
+}
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* === Confirm dialog === */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
