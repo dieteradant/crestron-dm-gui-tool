@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0f1d">
   <title>Matrix Switcher GUI</title>
   <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
   <div id="app">
-    <div id="header"></div>
-    <div class="panel-container">
-      <div class="panel active" id="panel-routing"></div>
-      <div class="panel" id="panel-status"></div>
-      <div class="panel" id="panel-edid"></div>
-      <div class="panel" id="panel-hdcp"></div>
-      <div class="panel" id="panel-network"></div>
-      <div class="panel" id="panel-system"></div>
-      <div class="panel" id="panel-terminal"></div>
-    </div>
+    <header id="header"></header>
+    <main class="panel-container">
+      <section class="panel active" id="panel-routing" role="tabpanel" aria-labelledby="tab-routing"></section>
+      <section class="panel" id="panel-status" role="tabpanel" aria-labelledby="tab-status"></section>
+      <section class="panel" id="panel-edid" role="tabpanel" aria-labelledby="tab-edid"></section>
+      <section class="panel" id="panel-hdcp" role="tabpanel" aria-labelledby="tab-hdcp"></section>
+      <section class="panel" id="panel-network" role="tabpanel" aria-labelledby="tab-network"></section>
+      <section class="panel" id="panel-system" role="tabpanel" aria-labelledby="tab-system"></section>
+      <section class="panel" id="panel-terminal" role="tabpanel" aria-labelledby="tab-terminal"></section>
+    </main>
   </div>
   <script type="module" src="js/app.js"></script>
 </body>

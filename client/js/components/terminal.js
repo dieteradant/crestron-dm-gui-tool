@@ -14,9 +14,21 @@ export class TerminalPanel {
 
     this.el.innerHTML = `
       <div class="terminal-panel">
+        <div class="terminal-bar">
+          <span class="section-title">Console</span>
+          <div class="btn-row">
+            <span class="badge badge-warn">Raw device access</span>
+            <button class="btn btn-ghost btn-sm" id="terminal-clear">Clear</button>
+          </div>
+        </div>
         <div class="terminal-container" id="terminal-container"></div>
       </div>
     `;
+
+    this.el.querySelector('#terminal-clear').addEventListener('click', () => {
+      this.term?.clear();
+      this.term?.focus();
+    });
 
     // Buffer terminal output while loading xterm
     const bufferHandler = this.wsClient.on('terminal', (msg) => {

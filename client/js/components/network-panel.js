@@ -1,4 +1,5 @@
 import { api } from '../lib/api.js';
+import { escapeHtml, emptyState, errorState, skeletonRows } from '../lib/ui.js';
 
 export class NetworkPanel {
   constructor() {
@@ -13,9 +14,7 @@ export class NetworkPanel {
           <span class="section-title">Network Configuration</span>
           <button class="btn btn-secondary btn-sm" id="net-refresh">Refresh</button>
         </div>
-        <div class="info-grid" id="net-info">
-          <div class="loading">Loading...</div>
-        </div>
+        <div id="net-info">${skeletonRows(3)}</div>
       </div>
       <div class="panel-section">
         <div class="section-header">
@@ -30,7 +29,7 @@ export class NetworkPanel {
   async refresh() {
     const infoEl = this.el.querySelector('#net-info');
     const rawEl = this.el.querySelector('#net-raw');
-    infoEl.innerHTML = '<div class="loading">Loading...</div>';
+    infoEl.innerHTML = skeletonRows(3);
 
     try {
       const data = await api.getNetwork();
@@ -40,21 +39,25 @@ export class NetworkPanel {
         { label: 'Gateway', value: data.gateway },
         { label: 'DHCP', value: data.dhcp },
         { label: 'Hostname', value: data.hostname },
-      ].filter(f => f.value);
+      ].filter((f) => f.value);
 
       if (fields.length > 0) {
-        infoEl.innerHTML = fields.map(f => `
-          <div class="info-item">
-            <div class="info-label">${f.label}</div>
-            <div class="info-value">${f.value}</div>
+        infoEl.innerHTML = `
+          <div class="info-grid">
+            ${fields.map((f) => `
+              <div class="info-item">
+                <div class="info-label">${escapeHtml(f.label)}</div>
+                <div class="info-value">${escapeHtml(f.value)}</div>
+              </div>
+            `).join('')}
           </div>
-        `).join('');
+        `;
       } else {
-        infoEl.innerHTML = '<div class="loading">No structured data parsed — see raw output below</div>';
+        infoEl.innerHTML = emptyState('No structured data parsed', 'See the raw ethernet status below.');
       }
       rawEl.textContent = data.raw || '';
     } catch (err) {
-      infoEl.innerHTML = `<div class="error-msg">${err.message}</div>`;
+      infoEl.innerHTML = errorState(err.message);
     }
   }
 
