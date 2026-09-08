@@ -1,4 +1,5 @@
 import { api } from '../lib/api.js';
+import { escapeHtml, errorState, skeletonRows } from '../lib/ui.js';
 
 export class SystemPanel {
   constructor() {
@@ -13,14 +14,12 @@ export class SystemPanel {
           <span class="section-title">System Info</span>
           <button class="btn btn-secondary btn-sm" id="sys-refresh">Refresh</button>
         </div>
-        <div class="info-grid" id="sys-info">
-          <div class="loading">Loading...</div>
-        </div>
+        <div id="sys-info">${skeletonRows(3)}</div>
       </div>
       <div class="panel-section">
         <div class="section-header">
           <span class="section-title">Error Log</span>
-          <div>
+          <div class="btn-row">
             <button class="btn btn-secondary btn-sm" id="err-refresh">Refresh</button>
             <button class="btn btn-danger btn-sm" id="err-clear">Clear</button>
           </div>
@@ -29,13 +28,13 @@ export class SystemPanel {
       </div>
       <div class="panel-section">
         <div class="section-header">
-          <span class="section-title">Memory & Processes</span>
-          <div>
+          <span class="section-title">Memory &amp; Processes</span>
+          <div class="btn-row">
             <button class="btn btn-secondary btn-sm" id="mem-refresh">Memory</button>
             <button class="btn btn-secondary btn-sm" id="top-refresh">TOP</button>
           </div>
         </div>
-        <div class="raw-output" id="sys-extra" style="display:none;"></div>
+        <div class="raw-output" id="sys-extra" hidden></div>
       </div>
       <div class="panel-section">
         <div class="section-header">
@@ -43,10 +42,11 @@ export class SystemPanel {
           <button class="btn btn-secondary btn-sm" id="fp-lockout-btn">Lockout Status</button>
         </div>
       </div>
-      <div class="panel-section">
+      <div class="panel-section section-danger">
         <div class="section-header">
           <span class="section-title">Danger Zone</span>
         </div>
+        <div class="section-subtitle">Rebooting takes the switcher offline for one to two minutes.</div>
         <button class="btn btn-danger" id="reboot-btn">Reboot Connected Device</button>
       </div>
     `;
@@ -85,7 +85,7 @@ export class SystemPanel {
 
   async refresh() {
     const infoEl = this.el.querySelector('#sys-info');
-    infoEl.innerHTML = '<div class="loading">Loading...</div>';
+    infoEl.innerHTML = skeletonRows(3);
 
     try {
       const [ver, uptime] = await Promise.all([api.getVersion(), api.getUptime()]);
@@ -94,20 +94,27 @@ export class SystemPanel {
         { label: 'Model', value: ver.model },
         { label: 'Serial', value: ver.serial },
         { label: 'Uptime', value: uptime.uptime },
-      ].filter(f => f.value);
+      ].filter((f) => f.value);
 
-      infoEl.innerHTML = fields.map(f => `
+      const items = fields.map((f) => `
         <div class="info-item">
-          <div class="info-label">${f.label}</div>
-          <div class="info-value">${f.value}</div>
+          <div class="info-label">${escapeHtml(f.label)}</div>
+          <div class="info-value">${escapeHtml(f.value)}</div>
         </div>
-      `).join('');
+      `);
 
       if (ver.info) {
-        infoEl.innerHTML += `<div class="info-item" style="grid-column:1/-1"><div class="info-label">Info</div><div class="info-value" style="font-size:11px;white-space:pre-wrap;">${ver.info}</div></div>`;
+        items.push(`
+          <div class="info-item info-item-wide">
+            <div class="info-label">Info</div>
+            <div class="info-value info-value-block">${escapeHtml(ver.info)}</div>
+          </div>
+        `);
       }
+
+      infoEl.innerHTML = `<div class="info-grid">${items.join('')}</div>`;
     } catch (err) {
-      infoEl.innerHTML = `<div class="error-msg">${err.message}</div>`;
+      infoEl.innerHTML = errorState(err.message);
     }
   }
 
@@ -124,7 +131,7 @@ export class SystemPanel {
 
   async loadExtra(type) {
     const extraEl = this.el.querySelector('#sys-extra');
-    extraEl.style.display = 'block';
+    extraEl.hidden = false;
     extraEl.textContent = 'Loading...';
     try {
       const data = type === 'memory' ? await api.getMemory() : await api.getTop();
@@ -138,10 +145,10 @@ export class SystemPanel {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.innerHTML = `
-      <div class="modal">
-        <h3>Reboot Connected Device?</h3>
-        <p style="color:var(--text-secondary);margin-bottom:8px;">This will reboot the currently connected matrix switcher. Active routes may be preserved by the hardware, but the device will likely be offline for 1-2 minutes.</p>
-        <p style="color:var(--error);font-weight:600;">This action cannot be undone.</p>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reboot-title">
+        <h3 id="reboot-title">Reboot Connected Device?</h3>
+        <p>This will reboot the currently connected matrix switcher. Active routes may be preserved by the hardware, but the device will likely be offline for 1-2 minutes.</p>
+        <p class="modal-warning">This action cannot be undone.</p>
         <div class="modal-actions">
           <button class="btn btn-secondary" id="reboot-cancel">Cancel</button>
           <button class="btn btn-danger" id="reboot-confirm">Reboot</button>
@@ -150,11 +157,21 @@ export class SystemPanel {
     `;
     document.body.appendChild(overlay);
 
-    overlay.querySelector('#reboot-cancel').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener('keydown', onKeydown);
+    };
+    const onKeydown = (e) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKeydown);
+
+    overlay.querySelector('#reboot-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelector('#reboot-cancel').focus();
 
     overlay.querySelector('#reboot-confirm').addEventListener('click', async () => {
-      overlay.remove();
+      close();
       try {
         await api.reboot();
         window.app?.toast('Reboot command sent', 'info');

@@ -1,4 +1,5 @@
 import { api } from '../lib/api.js';
+import { emptyState } from '../lib/ui.js';
 
 export class EdidPanel {
   constructor(capabilities = {}) {
@@ -23,11 +24,11 @@ export class EdidPanel {
 
   _renderPortButtons(type, count) {
     if (count < 1) {
-      return '<div class="loading" style="padding:12px 0;">No ports detected yet.</div>';
+      return emptyState('No ports detected yet', 'Connect to a switcher to inspect per-port EDID.');
     }
 
     return Array.from({ length: count }, (_, index) => `
-      <button class="btn btn-secondary btn-sm edid-${type}-btn" data-port="${index + 1}">${type.toUpperCase()} ${index + 1}</button>
+      <button class="btn btn-secondary btn-sm port-btn edid-${type}-btn" data-port="${index + 1}">${type.toUpperCase()} ${index + 1}</button>
     `).join('');
   }
 
@@ -44,7 +45,7 @@ export class EdidPanel {
       <div class="panel-section">
         <div class="section-header">
           <span class="section-title">EDID Overview</span>
-          <div>
+          <div class="btn-row">
             <button class="btn btn-secondary btn-sm" id="edid-refresh">Refresh</button>
             <button class="btn btn-secondary btn-sm" id="edid-lockout-btn">Lockout Status</button>
           </div>
@@ -55,47 +56,47 @@ export class EdidPanel {
         <div class="section-header">
           <span class="section-title">Input EDID Info</span>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-          ${this._renderPortButtons('in', this.inputCount)}
-        </div>
-        <div class="raw-output" id="edid-input-detail" style="display:none;"></div>
+        <div class="port-grid">${this._renderPortButtons('in', this.inputCount)}</div>
+        <div class="raw-output" id="edid-input-detail" hidden></div>
       </div>
       <div class="panel-section">
         <div class="section-header">
           <span class="section-title">Output EDID Info</span>
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-          ${this._renderPortButtons('out', this.outputCount)}
-        </div>
-        <div class="raw-output" id="edid-output-detail" style="display:none;"></div>
+        <div class="port-grid">${this._renderPortButtons('out', this.outputCount)}</div>
+        <div class="raw-output" id="edid-output-detail" hidden></div>
       </div>
       <div class="panel-section">
         <div class="section-header">
           <span class="section-title">EDID Actions</span>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <label style="font-size:13px;color:var(--text-secondary);">Copy TX EDID:</label>
-          <select id="edid-copy-src" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;">
-            ${this._renderPortOptions('OUT', this.outputCount)}
-          </select>
-          <span style="color:var(--text-dim)">→</span>
-          <select id="edid-copy-dst" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;">
-            ${this._renderPortOptions('IN', this.inputCount)}
-          </select>
-          <button class="btn btn-primary btn-sm" id="edid-copy-btn">Copy</button>
+        <div class="conn-form">
+          <div class="field">
+            <label class="field-label" for="edid-copy-src">Copy TX EDID from</label>
+            <select class="select" id="edid-copy-src">${this._renderPortOptions('OUT', this.outputCount)}</select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="edid-copy-dst">To input</label>
+            <select class="select" id="edid-copy-dst">${this._renderPortOptions('IN', this.inputCount)}</select>
+          </div>
+          <button class="btn btn-primary" id="edid-copy-btn">Copy</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-          <label style="font-size:13px;color:var(--text-secondary);">Force Default EDID:</label>
-          <select id="edid-force-port" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;">
-            ${this._renderPortOptions('IN', this.inputCount)}
-          </select>
-          <button class="btn btn-secondary btn-sm" id="edid-force-default-btn">Force Default</button>
-          <button class="btn btn-secondary btn-sm" id="edid-force-sent-btn">Force Sent</button>
+        <div class="conn-form" style="margin-top:12px;">
+          <div class="field">
+            <label class="field-label" for="edid-force-port">Force EDID on input</label>
+            <select class="select" id="edid-force-port">${this._renderPortOptions('IN', this.inputCount)}</select>
+          </div>
+          <button class="btn btn-secondary" id="edid-force-default-btn">Force Default</button>
+          <button class="btn btn-secondary" id="edid-force-sent-btn">Force Sent</button>
         </div>
       </div>
     `;
 
     this.bindEvents();
+  }
+
+  _markActivePort(selector, button) {
+    this.el.querySelectorAll(selector).forEach((btn) => btn.classList.toggle('is-active', btn === button));
   }
 
   bindEvents() {
@@ -112,7 +113,8 @@ export class EdidPanel {
     this.el.querySelectorAll('.edid-in-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const detail = this.el.querySelector('#edid-input-detail');
-        detail.style.display = 'block';
+        this._markActivePort('.edid-in-btn', btn);
+        detail.hidden = false;
         detail.textContent = 'Loading...';
         try {
           const data = await api.getEdidInput(btn.dataset.port);
@@ -126,7 +128,8 @@ export class EdidPanel {
     this.el.querySelectorAll('.edid-out-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const detail = this.el.querySelector('#edid-output-detail');
-        detail.style.display = 'block';
+        this._markActivePort('.edid-out-btn', btn);
+        detail.hidden = false;
         detail.textContent = 'Loading...';
         try {
           const data = await api.getEdidOutput(btn.dataset.port);

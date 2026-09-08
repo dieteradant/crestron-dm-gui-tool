@@ -9,6 +9,8 @@ import { NetworkPanel } from './components/network-panel.js';
 import { SystemPanel } from './components/system-panel.js';
 import { api } from './lib/api.js';
 
+const MAX_TOASTS = 4;
+
 function createEmptyCapabilities() {
   return {
     model: null,
@@ -116,6 +118,8 @@ class App {
         panel.setCapabilities(this.deviceCapabilities);
       }
     });
+
+    this.header?.setDeviceInfo(this.deviceCapabilities);
   }
 
   async loadCapabilities(forceRefresh = false) {
@@ -149,16 +153,44 @@ class App {
     const container = document.createElement('div');
     container.className = 'toast-container';
     container.id = 'toast-container';
+    container.setAttribute('role', 'status');
+    container.setAttribute('aria-live', 'polite');
     document.body.appendChild(container);
   }
 
   toast(message, type = 'info') {
     const container = document.getElementById('toast-container');
+    const icons = { success: '✓', error: '!', info: 'i' };
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.textContent = message;
+    toast.title = 'Dismiss';
+
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = icons[type] || icons.info;
+
+    const body = document.createElement('span');
+    body.className = 'toast-body';
+    body.textContent = message;
+
+    toast.append(icon, body);
+
+    const dismiss = () => {
+      if (!toast.isConnected) return;
+      toast.classList.add('is-leaving');
+      setTimeout(() => toast.remove(), 160);
+    };
+
+    toast.addEventListener('click', dismiss);
     container.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+
+    while (container.children.length > MAX_TOASTS) {
+      container.firstElementChild.remove();
+    }
+
+    setTimeout(dismiss, 4000);
   }
 }
 

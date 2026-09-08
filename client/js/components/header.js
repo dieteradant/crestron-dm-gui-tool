@@ -1,4 +1,5 @@
 import { api } from '../lib/api.js';
+import { escapeHtml } from '../lib/ui.js';
 
 export class Header {
   constructor(wsClient, onTabChange, onConnectionStateChange = null) {
@@ -10,6 +11,7 @@ export class Header {
     this.connected = false;
     this.configured = false;
     this.transport = 'ctp';
+    this._autoOpenedDrawer = false;
 
     this.tabs = [
       { id: 'routing', label: 'Routing', key: '1' },
@@ -30,52 +32,83 @@ export class Header {
     this.el.innerHTML = `
       <div class="header">
         <div class="header-left">
-          <div class="connection-status">
+          <div class="connection-status" id="conn-status" aria-live="polite">
             <span class="connection-dot" id="conn-dot"></span>
             <span id="conn-label">Checking status...</span>
           </div>
-          <button class="btn btn-secondary btn-sm" id="conn-settings-btn" style="font-size:11px;padding:2px 8px;">Connect</button>
+          <button class="btn btn-ghost btn-sm" id="conn-settings-btn" aria-expanded="false" aria-controls="conn-settings">Connect</button>
         </div>
-        <div class="header-title">Matrix Switcher GUI</div>
-        <div class="queue-indicator" id="queue-indicator"></div>
-      </div>
-      <div id="conn-settings" style="display:none;background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:8px 16px;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <label style="font-size:12px;color:var(--text-secondary);">Transport:</label>
-          <select id="conn-transport" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;">
-            <option value="ctp">CTP</option>
-            <option value="ssh">SSH</option>
-          </select>
-          <label style="font-size:12px;color:var(--text-secondary);">Host:</label>
-          <input type="text" id="conn-host" placeholder="switcher.local" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:220px;">
-          <label style="font-size:12px;color:var(--text-secondary);">Port:</label>
-          <input type="number" id="conn-port" placeholder="41795" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:80px;">
-          <span id="conn-auth-fields" style="display:none;align-items:center;gap:8px;">
-            <label style="font-size:12px;color:var(--text-secondary);">User:</label>
-            <input type="text" id="conn-username" placeholder="admin" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:120px;">
-            <label style="font-size:12px;color:var(--text-secondary);">Pass:</label>
-            <input type="password" id="conn-password" placeholder="optional" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:13px;width:140px;">
-          </span>
-          <button class="btn btn-primary btn-sm" id="conn-go">Connect</button>
+        <div class="brand">
+          <span class="brand-mark">Matrix Switcher GUI</span>
+        </div>
+        <div class="header-right">
+          <span class="device-chip" id="device-chip" hidden></span>
+          <span class="queue-indicator" id="queue-indicator"></span>
         </div>
       </div>
-      <nav class="nav-tabs" id="nav-tabs">
-        ${this.tabs.map(t => `
-          <div class="nav-tab ${t.id === this.activeTab ? 'active' : ''}" data-tab="${t.id}">
-            ${t.label}<span class="shortcut">^${t.key}</span>
+      <div class="conn-drawer" id="conn-settings" hidden>
+        <div class="conn-form">
+          <div class="field">
+            <label class="field-label" for="conn-transport">Transport</label>
+            <select class="select" id="conn-transport">
+              <option value="ctp">CTP</option>
+              <option value="ssh">SSH</option>
+            </select>
           </div>
+          <div class="field">
+            <label class="field-label" for="conn-host">Host</label>
+            <input class="input input-host" type="text" id="conn-host" placeholder="switcher.local" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label class="field-label" for="conn-port">Port</label>
+            <input class="input input-port" type="number" id="conn-port" placeholder="41795">
+          </div>
+          <div class="field-group" id="conn-auth-fields" hidden>
+            <div class="field">
+              <label class="field-label" for="conn-username">Username</label>
+              <input class="input input-user" type="text" id="conn-username" placeholder="admin" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="field">
+              <label class="field-label" for="conn-password">Password</label>
+              <input class="input input-pass" type="password" id="conn-password" placeholder="optional" autocomplete="off">
+            </div>
+          </div>
+          <button class="btn btn-primary" id="conn-go">Connect</button>
+          <p class="conn-hint" id="conn-hint">CTP uses port 41795. CPU3 and newer controllers often require SSH on port 22.</p>
+        </div>
+      </div>
+      <nav class="nav-tabs" id="nav-tabs" role="tablist" aria-label="Views">
+        ${this.tabs.map((t) => `
+          <button type="button" role="tab" id="tab-${t.id}" class="nav-tab ${t.id === this.activeTab ? 'active' : ''}"
+                  data-tab="${t.id}" aria-controls="panel-${t.id}" aria-selected="${t.id === this.activeTab}"
+                  tabindex="${t.id === this.activeTab ? '0' : '-1'}">
+            <span>${t.label}</span><span class="shortcut" aria-hidden="true">^${t.key}</span>
+          </button>
         `).join('')}
       </nav>
     `;
   }
 
   bindEvents() {
-    document.getElementById('nav-tabs').addEventListener('click', (e) => {
+    const navTabs = document.getElementById('nav-tabs');
+
+    navTabs.addEventListener('click', (e) => {
       const tab = e.target.closest('.nav-tab');
       if (tab) this.setTab(tab.dataset.tab);
     });
 
+    navTabs.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const step = e.key === 'ArrowRight' ? 1 : -1;
+      const index = this.tabs.findIndex((t) => t.id === this.activeTab);
+      const next = this.tabs[(index + step + this.tabs.length) % this.tabs.length];
+      this.setTab(next.id);
+      document.getElementById(`tab-${next.id}`)?.focus();
+    });
+
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.toggleDrawer(false);
       // Don't capture shortcuts when typing in inputs or terminal
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
@@ -87,25 +120,36 @@ export class Header {
       }
     });
 
-    // Connection settings toggle
     document.getElementById('conn-settings-btn').addEventListener('click', () => {
-      const panel = document.getElementById('conn-settings');
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      const drawer = document.getElementById('conn-settings');
+      this.toggleDrawer(drawer.hidden);
     });
 
-    // Connect button
     document.getElementById('conn-go').addEventListener('click', () => this.doConnect());
     document.getElementById('conn-transport').addEventListener('change', (e) => {
       this.updateTransportFields(e.target.value);
     });
-    document.getElementById('conn-host').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.doConnect();
+
+    ['conn-host', 'conn-port', 'conn-username', 'conn-password'].forEach((id) => {
+      document.getElementById(id).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.doConnect();
+      });
     });
 
     // WebSocket connection state
     this.wsClient.on('connection', (msg) => {
       this.applyConnectionState(msg);
     });
+  }
+
+  toggleDrawer(open) {
+    const drawer = document.getElementById('conn-settings');
+    const button = document.getElementById('conn-settings-btn');
+    if (!drawer || !button) return;
+    drawer.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+    button.textContent = open ? 'Hide' : 'Connect';
+    if (open) document.getElementById('conn-host')?.focus();
   }
 
   async doConnect() {
@@ -115,11 +159,19 @@ export class Header {
     const username = document.getElementById('conn-username')?.value.trim() || '';
     const password = document.getElementById('conn-password')?.value ?? '';
     const defaultPort = transport === 'ssh' ? 22 : 41795;
-    if (!host) return;
-    if (transport === 'ssh' && !username) {
-      window.app?.toast('SSH username required', 'error');
+    if (!host) {
+      window.app?.toast('Host required', 'error');
+      document.getElementById('conn-host').focus();
       return;
     }
+    if (transport === 'ssh' && !username) {
+      window.app?.toast('SSH username required', 'error');
+      document.getElementById('conn-username').focus();
+      return;
+    }
+
+    const button = document.getElementById('conn-go');
+    button.disabled = true;
     try {
       const selectedPort = portValue ? parseInt(portValue, 10) : defaultPort;
       const response = await api.connect({
@@ -135,10 +187,12 @@ export class Header {
         connected: false,
         prompt: null,
       });
-      document.getElementById('conn-settings').style.display = 'none';
-      window.app?.toast(`Connecting via ${transport.toUpperCase()} to ${host}:${portValue || defaultPort}...`, 'info');
+      this.toggleDrawer(false);
+      window.app?.toast(`Connecting via ${transport.toUpperCase()} to ${host}:${selectedPort}...`, 'info');
     } catch (err) {
       window.app?.toast(`Connect failed: ${err.message}`, 'error');
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -159,26 +213,32 @@ export class Header {
     if (hostInput && !hostInput.value && data.host) hostInput.value = data.host;
     if (portInput && !portInput.value && data.port) portInput.value = data.port || 41795;
     if (usernameInput && !usernameInput.value && data.username) usernameInput.value = data.username;
+
+    // First run with no configured device: surface the form instead of an empty UI.
+    if (!data.configured && !this._autoOpenedDrawer) {
+      this._autoOpenedDrawer = true;
+      this.toggleDrawer(true);
+    }
   }
 
   async pollConnection() {
-    try {
-      const data = await api.connection();
-      this.applyConnectionState(data);
-    } catch {}
-    // Poll every 3 seconds
-    setInterval(async () => {
+    const poll = async () => {
       try {
         const data = await api.connection();
         this.applyConnectionState(data);
       } catch {}
-    }, 3000);
+    };
+    await poll();
+    setInterval(poll, 3000);
   }
 
   setTab(tabId) {
     this.activeTab = tabId;
-    document.querySelectorAll('.nav-tab').forEach(el => {
-      el.classList.toggle('active', el.dataset.tab === tabId);
+    document.querySelectorAll('.nav-tab').forEach((el) => {
+      const isActive = el.dataset.tab === tabId;
+      el.classList.toggle('active', isActive);
+      el.setAttribute('aria-selected', String(isActive));
+      el.tabIndex = isActive ? 0 : -1;
     });
     this.onTabChange(tabId);
   }
@@ -189,13 +249,42 @@ export class Header {
     this.transport = transport || 'ctp';
     const dot = document.getElementById('conn-dot');
     const label = document.getElementById('conn-label');
+    const status = document.getElementById('conn-status');
     if (!dot || !label) return;
+
     dot.classList.toggle('connected', connected);
+    status?.classList.toggle('is-connected', Boolean(connected));
+    status?.classList.toggle('is-offline', Boolean(configured) && !connected);
+
     if (!configured) {
       label.textContent = 'No switcher configured';
       return;
     }
-    label.textContent = connected ? (prompt || `${this.transport.toUpperCase()} connected`) : `${this.transport.toUpperCase()} disconnected`;
+    label.textContent = connected
+      ? (prompt || `${this.transport.toUpperCase()} connected`)
+      : `${this.transport.toUpperCase()} disconnected`;
+  }
+
+  setDeviceInfo(capabilities = {}) {
+    const chip = document.getElementById('device-chip');
+    if (!chip) return;
+
+    const model = capabilities.model;
+    const inputs = capabilities.inputCount || 0;
+    const outputs = capabilities.outputCount || 0;
+
+    if (!model && !inputs) {
+      chip.hidden = true;
+      chip.innerHTML = '';
+      return;
+    }
+
+    const size = inputs && outputs ? `${inputs}&times;${outputs}` : '';
+    chip.hidden = false;
+    chip.innerHTML = [
+      model ? `<strong>${escapeHtml(model)}</strong>` : '',
+      size,
+    ].filter(Boolean).join(' &middot; ');
   }
 
   updateTransportFields(transport) {
@@ -204,7 +293,7 @@ export class Header {
     if (!authFields || !portInput) return;
 
     const ssh = transport === 'ssh';
-    authFields.style.display = ssh ? 'inline-flex' : 'none';
+    authFields.hidden = !ssh;
     portInput.placeholder = ssh ? '22' : '41795';
   }
 }

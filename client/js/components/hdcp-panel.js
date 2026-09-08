@@ -13,6 +13,7 @@ export class HdcpPanel {
           <span class="section-title">HDCP Status</span>
           <button class="btn btn-secondary btn-sm" id="hdcp-refresh">Refresh</button>
         </div>
+        <div class="section-subtitle">Raw HDCP report from the connected chassis.</div>
         <div class="raw-output" id="hdcp-output">Loading...</div>
       </div>
     `;
@@ -21,12 +22,16 @@ export class HdcpPanel {
 
   async refresh() {
     const output = this.el.querySelector('#hdcp-output');
+    const button = this.el.querySelector('#hdcp-refresh');
     output.textContent = 'Loading...';
+    button.disabled = true;
     try {
       const data = await api.getHdcp();
       output.textContent = data.raw || JSON.stringify(data, null, 2);
     } catch (err) {
       output.textContent = `Error: ${err.message}`;
+    } finally {
+      button.disabled = false;
     }
   }
 
