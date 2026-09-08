@@ -24,7 +24,7 @@ export class SystemPanel {
             <button class="btn btn-danger btn-sm" id="err-clear">Clear</button>
           </div>
         </div>
-        <div class="raw-output" id="err-log" style="max-height:300px;"></div>
+        <div class="raw-output raw-output-short" id="err-log"></div>
       </div>
       <div class="panel-section">
         <div class="section-header">

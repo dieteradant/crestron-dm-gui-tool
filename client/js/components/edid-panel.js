@@ -70,7 +70,7 @@ export class EdidPanel {
         <div class="section-header">
           <span class="section-title">EDID Actions</span>
         </div>
-        <div class="conn-form">
+        <div class="form-row">
           <div class="field">
             <label class="field-label" for="edid-copy-src">Copy TX EDID from</label>
             <select class="select" id="edid-copy-src">${this._renderPortOptions('OUT', this.outputCount)}</select>
@@ -81,7 +81,7 @@ export class EdidPanel {
           </div>
           <button class="btn btn-primary" id="edid-copy-btn">Copy</button>
         </div>
-        <div class="conn-form" style="margin-top:12px;">
+        <div class="form-row">
           <div class="field">
             <label class="field-label" for="edid-force-port">Force EDID on input</label>
             <select class="select" id="edid-force-port">${this._renderPortOptions('IN', this.inputCount)}</select>

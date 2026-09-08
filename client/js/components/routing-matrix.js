@@ -75,7 +75,7 @@ export class RoutingMatrix {
           </div>
         </div>
       ` : emptyState('No routing grid yet', 'Connect to a switcher to load inputs and outputs.')}
-      <div class="raw-output" id="route-raw" hidden style="margin-top:12px;"></div>
+      <div class="raw-output raw-output-below" id="route-raw" hidden></div>
     `;
 
     const rawEl = document.getElementById('route-raw');
@@ -172,6 +172,12 @@ export class RoutingMatrix {
     });
 
     this.el.addEventListener('pointerleave', () => this._setCrosshair(null, null));
+
+    this.el.addEventListener('focusin', (event) => {
+      const cell = event.target.closest('.matrix-cell');
+      if (!cell) return;
+      this._setCrosshair(parseInt(cell.dataset.in, 10), parseInt(cell.dataset.out, 10));
+    });
 
     this.el.addEventListener('keydown', (event) => {
       const cell = event.target.closest('.matrix-cell');

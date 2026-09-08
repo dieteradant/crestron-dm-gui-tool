@@ -16,9 +16,9 @@ export class StatusPanel {
         </div>
         <div class="section-subtitle">Input cards</div>
         <div id="input-cards-table">${skeletonRows(3)}</div>
-        <div class="section-subtitle" style="margin-top:16px;">Output cards</div>
+        <div class="section-subtitle is-spaced">Output cards</div>
         <div id="output-cards-table">${skeletonRows(3)}</div>
-        <div class="section-subtitle" style="margin-top:16px;">System cards</div>
+        <div class="section-subtitle is-spaced">System cards</div>
         <div id="system-cards-table">${skeletonRows(2)}</div>
       </div>
       <div class="panel-section">

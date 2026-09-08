@@ -133,14 +133,6 @@ html, body {
   background: linear-gradient(180deg, var(--accent), var(--accent-hover));
 }
 
-.brand-version {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-
 /* Connection state pill */
 .connection-status {
   display: inline-flex;
@@ -226,12 +218,15 @@ html, body {
 
 .conn-drawer[hidden] { display: none; }
 
-.conn-form {
+.conn-form,
+.form-row {
   display: flex;
   align-items: flex-end;
   gap: var(--sp-3);
   flex-wrap: wrap;
 }
+
+.form-row + .form-row { margin-top: var(--sp-3); }
 
 .field {
   display: flex;
@@ -518,6 +513,8 @@ html, body {
   margin-bottom: var(--sp-3);
 }
 
+.section-subtitle.is-spaced { margin-top: var(--sp-4); }
+
 .section-danger { border-color: rgba(248, 113, 113, 0.28); }
 
 /* ==========================================================================
@@ -724,6 +721,8 @@ html, body {
 }
 
 .raw-output[hidden] { display: none; }
+.raw-output-below { margin-top: var(--sp-3); }
+.raw-output-short { max-height: 300px; }
 
 /* ==========================================================================
    Badges + pills
@@ -810,13 +809,6 @@ html, body {
 /* ==========================================================================
    States: loading, skeleton, empty, error
    ========================================================================== */
-.loading {
-  color: var(--text-dim);
-  padding: var(--sp-5);
-  text-align: center;
-  font-size: 13px;
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;
