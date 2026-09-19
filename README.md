@@ -41,6 +41,7 @@ Current release line: `0.0.3 Beta`
 - The raw command endpoint and terminal view can issue direct device commands.
 - Run it only on a trusted local network or behind your own access controls.
 - Do not expose it directly to the public internet.
+- CTP console traffic is unencrypted. The SSH transport authenticates with a password but does not verify the device host key, so an on-path attacker on the same network could impersonate the switcher.
 - If you find a security issue, follow the disclosure guidance in [SECURITY.md](SECURITY.md).
 
 ## Requirements
@@ -87,6 +88,13 @@ If `SWITCHER_HOST` is left blank, the web UI starts in a disconnected state and 
 - SSH still requires a username even when the target is configured for an empty password. This app supports blank SSH passwords, but it does not assume anonymous SSH.
 - Some newer Crestron platforms can present first-run SSH provisioning prompts such as `Username:`, `Password:`, and `Verify password:` before a console prompt is available.
 - The terminal tab is intended for engineering and troubleshooting. It exposes raw device interaction.
+
+## Development
+
+- `npm test` runs the unit and API tests with the built-in Node test runner.
+- `npm run lint` checks the codebase with ESLint.
+- `npm run smoke` verifies that the server starts without a configured switcher.
+- CI runs lint and the full test suite on Node.js 18 and 22 for every push and pull request.
 
 ## Known Limitations
 
