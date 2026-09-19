@@ -15,13 +15,29 @@ const connectionState = {
   configured: true,
   host: 'demo-switch.local',
   port: 41795,
+  transport: 'ctp',
+  username: 'admin',
+  hasPassword: true,
   prompt: 'DM-MD8x8>'
+};
+
+const capabilitiesPayload = {
+  model: 'DM-MD8x8',
+  firmware: '4.102.352400074 (Sep 23 2019)',
+  serial: '00FFC818',
+  inputCount: 8,
+  outputCount: 8,
+  outputSlotOffset: 17,
+  cards: []
 };
 
 const routePayload = {
   video: { 1: 1, 2: 3, 3: 5, 4: 7, 5: 2, 6: 4, 7: 6, 8: 8 },
   audio: { 1: 1, 2: 3, 3: 5, 4: 7, 5: 2, 6: 4, 7: 6, 8: 8 },
   usb: { 1: 2, 2: 2, 3: 4, 4: 4, 5: 6, 6: 6, 7: 8, 8: 8 },
+  inputCount: 8,
+  outputCount: 8,
+  model: 'DM-MD8x8',
   raw: [
     'Routing Information for Output Card at Slot 17',
     'Video Routed From Input Card at slot 1',
@@ -160,6 +176,14 @@ async function main() {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(connectionState)
+    });
+  });
+
+  await page.route('**/api/capabilities', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(capabilitiesPayload)
     });
   });
 
