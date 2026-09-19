@@ -1,17 +1,7 @@
-const HTML_ESCAPES = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
-};
+import { escapeHtml } from './html.mjs';
 
-// Device console output is untrusted input, so anything interpolated into
-// innerHTML has to go through here.
-export function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
-  return String(value).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
-}
+// Re-exported so components can keep importing all HTML helpers from ui.js.
+export { escapeHtml };
 
 export function skeletonRows(count = 4, className = 'skeleton-row') {
   const rows = Array.from({ length: count }, () => `<div class="skeleton ${className}"></div>`).join('');
