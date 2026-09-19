@@ -1,6 +1,6 @@
 const express = require('express');
-const { parseVersion, parseErrLog, parseUptime, parseMemory, parseTop } = require('../ctp/parser');
-const { httpError, asyncHandler } = require('../http');
+const { parseVersion, parseErrLog, parseUptime, parseTop } = require('../ctp/parser');
+const { httpError, asyncHandler, safeToken } = require('../http');
 
 function createRouter(commandQueue) {
   const router = express.Router();
@@ -38,7 +38,7 @@ function createRouter(commandQueue) {
   }));
 
   router.post('/system/reboot', asyncHandler(async (req, res) => {
-    if (!req.body.confirm) {
+    if (!req.body?.confirm) {
       throw httpError(400, 'Must include confirm: true to reboot');
     }
     const raw = await commandQueue.execute('REBOOT', 3000);
@@ -51,7 +51,7 @@ function createRouter(commandQueue) {
   }));
 
   router.post('/fp-lockout', asyncHandler(async (req, res) => {
-    const { state } = req.body;
+    const state = safeToken(req.body?.state, 'state');
     const raw = await commandQueue.execute(`SETFPLOCKOUT ${state}`);
     res.json({ success: true, raw });
   }));
