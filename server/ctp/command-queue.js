@@ -1,45 +1,101 @@
+const { httpError } = require('../http');
+
+const DEFAULT_TIMEOUT_MS = 5000;
+// How long a command queued while disconnected waits for a reconnect before
+// giving up, so HTTP callers fail instead of hanging indefinitely.
+const DEFAULT_CONNECT_WAIT_MS = 15000;
+// Delay after 'connected' before flushing queued commands, letting the
+// device banner and first prompt settle.
+const DEFAULT_FLUSH_DELAY_MS = 500;
+
 class CommandQueue {
-  constructor(connection) {
+  constructor(connection, options = {}) {
     this.connection = connection;
     this.queue = [];
     this.busy = false;
+    this._connectWaitMs = options.connectWaitMs ?? DEFAULT_CONNECT_WAIT_MS;
+    this._flushDelayMs = options.flushDelayMs ?? DEFAULT_FLUSH_DELAY_MS;
     this._responseBuffer = '';
-    this._currentResolve = null;
-    this._currentReject = null;
-    this._currentTimeout = null;
-    this._currentCommand = null;
-    this._waitingForConnection = [];
+    this._current = null;
 
     this.connection.on('data', (data) => {
       if (!this.busy) return;
       this._responseBuffer += data;
-      this._checkForPrompt();
+    });
+
+    // The connection owns prompt detection; its 'prompt' event is the single
+    // completion signal for the in-flight command.
+    this.connection.on('prompt', () => {
+      if (!this.busy) return;
+      this._finish({ timedOut: false });
+    });
+
+    // A dropped connection ends the in-flight command early with whatever
+    // arrived so callers aren't stuck waiting out the full timeout. Queued
+    // commands get a bounded wait for the reconnect instead of hanging.
+    this.connection.on('disconnected', () => {
+      if (this.busy) {
+        this._finish({ timedOut: false, disconnected: true });
+      }
+      for (const item of this.queue) {
+        this._armWaitTimer(item);
+      }
     });
 
     // When connection comes up, flush any queued commands
     this.connection.on('connected', () => {
       if (!this.busy && this.queue.length > 0) {
-        // Small delay to let the banner/prompt flush through
-        setTimeout(() => this._processNext(), 500);
+        setTimeout(() => this._processNext(), this._flushDelayMs);
       }
     });
   }
 
-  execute(command, timeoutMs = 5000) {
+  // Back-compat shape: resolves with just the response text.
+  execute(command, timeoutMs = DEFAULT_TIMEOUT_MS) {
+    return this.executeDetailed(command, timeoutMs).then((result) => result.raw);
+  }
+
+  // Resolves { raw, timedOut, command } (+ disconnected: true when the
+  // connection dropped mid-response). Timeouts resolve with the partial
+  // response rather than rejecting — engineers need to see what came back —
+  // so callers must check timedOut before trusting parsed results.
+  executeDetailed(command, timeoutMs = DEFAULT_TIMEOUT_MS) {
+    if (typeof command !== 'string' || command.trim() === '') {
+      return Promise.reject(httpError(400, 'command required'));
+    }
+    if (!this.connection.isConfigured) {
+      return Promise.reject(httpError(503, 'No switcher configured'));
+    }
+
     return new Promise((resolve, reject) => {
-      this.queue.push({ command, resolve, reject, timeoutMs });
+      const item = { command, timeoutMs, resolve, reject, waitTimer: null, timeoutTimer: null };
+      this.queue.push(item);
+
+      if (!this.connection.connected) {
+        this._armWaitTimer(item);
+      }
+
       if (!this.busy && this.connection.connected) {
         this._processNext();
       }
     });
   }
 
-  async executeBatch(commands, timeoutMs = 5000) {
+  async executeBatch(commands, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const results = [];
     for (const cmd of commands) {
       results.push(await this.execute(cmd, timeoutMs));
     }
     return results;
+  }
+
+  _armWaitTimer(item) {
+    if (item.waitTimer || this.connection.connected) return;
+    item.waitTimer = setTimeout(() => {
+      const idx = this.queue.indexOf(item);
+      if (idx !== -1) this.queue.splice(idx, 1);
+      item.reject(httpError(503, `Not connected to switcher (gave up after ${this._connectWaitMs}ms waiting for a connection)`));
+    }, this._connectWaitMs);
   }
 
   _processNext() {
@@ -49,81 +105,65 @@ class CommandQueue {
     }
 
     if (!this.connection.connected) {
+      // The reconnect-flush timer can fire after a drop: leave queued items
+      // to their bounded wait timers.
       this.busy = false;
-      // Reject all pending with connection error
-      while (this.queue.length > 0) {
-        const { reject } = this.queue.shift();
-        reject(new Error('Not connected to switcher'));
-      }
       return;
     }
 
     this.busy = true;
-    const { command, resolve, reject, timeoutMs } = this.queue.shift();
-
-    this._responseBuffer = '';
-    this._currentResolve = resolve;
-    this._currentReject = reject;
-    this._currentCommand = command;
-    this.connection.resetBuffer();
-
-    this._currentTimeout = setTimeout(() => {
-      const partial = this._responseBuffer;
-      this._cleanup();
-      // Resolve with partial data on timeout rather than rejecting —
-      // engineers need to see what came back
-      resolve(partial);
-      this._processNext();
-    }, timeoutMs);
-
-    this.connection.sendCommand(command);
-  }
-
-  _checkForPrompt() {
-    const prompt = this.connection.promptPattern;
-    if (!prompt) return;
-
-    const promptIdx = this._responseBuffer.lastIndexOf(prompt);
-    if (promptIdx === -1) return;
-
-    // Everything before the final prompt
-    const raw = this._responseBuffer.substring(0, promptIdx);
-    const resolve = this._currentResolve;
-    const command = this._currentCommand;
-    this._cleanup();
-
-    // Strip the echoed command from the start
-    // CTP echoes back the command we sent, followed by \r\n
-    let cleaned = raw;
-    if (command) {
-      // The echo may appear at the start, possibly with \r\n prefix
-      const echoPatterns = [
-        command + '\r\n',
-        command + '\n',
-        '\r\n' + command + '\r\n',
-        '\n' + command + '\n',
-      ];
-      for (const echo of echoPatterns) {
-        const idx = cleaned.indexOf(echo);
-        if (idx !== -1 && idx < 10) {
-          cleaned = cleaned.substring(idx + echo.length);
-          break;
-        }
-      }
+    const item = this.queue.shift();
+    if (item.waitTimer) {
+      clearTimeout(item.waitTimer);
+      item.waitTimer = null;
     }
 
-    cleaned = cleaned.replace(/\r\n/g, '\n').trim();
-    resolve(cleaned);
+    this._responseBuffer = '';
+    this._current = item;
+    this.connection.resetBuffer();
+
+    item.timeoutTimer = setTimeout(() => {
+      this._finish({ timedOut: true });
+    }, item.timeoutMs);
+
+    this.connection.sendCommand(item.command);
+  }
+
+  _finish({ timedOut, disconnected = false }) {
+    const item = this._current;
+    if (!item) return;
+    this._current = null;
+    clearTimeout(item.timeoutTimer);
+
+    const result = {
+      raw: this._cleanResponse(this._stripPrompt(this._responseBuffer), item.command),
+      timedOut,
+      command: item.command,
+    };
+    if (disconnected) result.disconnected = true;
+
+    item.resolve(result);
     this._processNext();
   }
 
-  _cleanup() {
-    clearTimeout(this._currentTimeout);
-    this._currentResolve = null;
-    this._currentReject = null;
-    this._currentTimeout = null;
-    this._currentCommand = null;
-    this._responseBuffer = '';
+  _stripPrompt(raw) {
+    const prompt = this.connection.promptPattern;
+    if (!prompt) return raw;
+    const idx = raw.lastIndexOf(prompt);
+    return idx === -1 ? raw : raw.substring(0, idx);
+  }
+
+  _cleanResponse(raw, command) {
+    // Strip the echoed command from the start — CTP echoes back what we
+    // sent, followed by a line ending.
+    let cleaned = String(raw).replace(/^[\r\n]+/, '');
+    for (const eol of ['\r\n', '\n', '\r']) {
+      if (cleaned.startsWith(command + eol)) {
+        cleaned = cleaned.slice(command.length + eol.length);
+        break;
+      }
+    }
+    return cleaned.replace(/\r\n/g, '\n').trim();
   }
 
   get isConnected() {

@@ -1,4 +1,5 @@
 const { parseVersion, parseCards, buildDeviceCapabilities } = require('./parser');
+const { httpError } = require('../http');
 
 class DeviceCapabilitiesService {
   constructor(commandQueue, connection) {
@@ -25,7 +26,7 @@ class DeviceCapabilitiesService {
 
   async get(forceRefresh = false) {
     if (!this.connection.connected) {
-      throw new Error('Not connected to switcher');
+      throw httpError(503, 'Not connected to switcher');
     }
 
     if (!forceRefresh) {

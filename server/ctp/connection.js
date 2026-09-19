@@ -3,7 +3,7 @@ const RawSocketTransport = require('./transports/raw-socket');
 const SshShellTransport = require('./transports/ssh-shell');
 const { normalizeConnectionConfig } = require('./connection-config');
 
-const PROMPT_PATTERN = /^([A-Za-z0-9][A-Za-z0-9\-]+> ?)/m;
+const PROMPT_PATTERN = /^([A-Za-z0-9][A-Za-z0-9-]+> ?)/m;
 const TRANSPORTS = {
   ctp: RawSocketTransport,
   ssh: SshShellTransport,
