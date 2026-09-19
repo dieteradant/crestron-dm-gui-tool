@@ -13,6 +13,8 @@ const {
 const CommandQueue = require('./ctp/command-queue');
 const DeviceCapabilitiesService = require('./ctp/device-capabilities');
 const WSHandler = require('./ws/handler');
+const connectionStatePayload = require('./connection-state');
+const { httpError, asyncHandler, apiErrorMiddleware } = require('./http');
 const createRoutingRouter = require('./routes/routing');
 const createStatusRouter = require('./routes/status');
 const createSystemRouter = require('./routes/system');
@@ -62,31 +64,17 @@ app.use('/api', createStatusRouter(commandQueue, deviceCapabilities));
 app.use('/api', createSystemRouter(commandQueue));
 app.use('/api', createNetworkRouter(commandQueue));
 
-app.get('/api/capabilities', async (req, res) => {
-  try {
-    const capabilities = await deviceCapabilities.get();
-    res.json(capabilities);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+app.get('/api/capabilities', asyncHandler(async (req, res) => {
+  res.json(await deviceCapabilities.get());
+}));
 
 // Connection status endpoint
 app.get('/api/connection', (req, res) => {
-  res.json({
-    connected: switcherConnection.connected,
-    configured: switcherConnection.isConfigured,
-    host: switcherConnection.host || '',
-    port: switcherConnection.port,
-    transport: switcherConnection.transport,
-    username: switcherConnection.username || '',
-    hasPassword: Boolean(switcherConnection.password),
-    prompt: switcherConnection.promptPattern
-  });
+  res.json(connectionStatePayload(switcherConnection));
 });
 
 // Connect to a different switcher
-app.post('/api/connection', (req, res) => {
+app.post('/api/connection', asyncHandler(async (req, res) => {
   const connectionConfig = normalizeConnectionConfig(req.body || {}, {
     transport: switcherConnection.transport,
     port: switcherConnection.port,
@@ -95,11 +83,11 @@ app.post('/api/connection', (req, res) => {
   });
 
   if (!connectionConfig.host) {
-    return res.status(400).json({ error: 'host required' });
+    throw httpError(400, 'host required');
   }
 
   if (connectionConfig.transport === 'ssh' && !connectionConfig.username) {
-    return res.status(400).json({ error: 'username required for SSH' });
+    throw httpError(400, 'username required for SSH');
   }
 
   if (!connectionConfig.port) {
@@ -118,19 +106,17 @@ app.post('/api/connection', (req, res) => {
     username: connectionConfig.username || '',
     hasPassword: Boolean(connectionConfig.password),
   });
-});
+}));
 
 // Raw command endpoint for the active console transport
-app.post('/api/command', async (req, res) => {
+app.post('/api/command', asyncHandler(async (req, res) => {
   const { command, timeout } = req.body;
-  if (!command) return res.status(400).json({ error: 'command required' });
-  try {
-    const raw = await commandQueue.execute(command, timeout || 10000);
-    res.json({ raw });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+  if (!command) throw httpError(400, 'command required');
+  const raw = await commandQueue.execute(command, timeout || 10000);
+  res.json({ raw });
+}));
+
+app.use(apiErrorMiddleware);
 
 // --- HTTP + WebSocket Server ---
 const server = http.createServer(app);
