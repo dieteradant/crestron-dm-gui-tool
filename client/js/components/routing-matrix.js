@@ -1,5 +1,6 @@
 import { api } from '../lib/api.js';
 import { emptyState } from '../lib/ui.js';
+import { renderMatrixGrid } from '../lib/matrix-grid.mjs';
 
 const MODES = [
   { id: 'video', label: 'Video' },
@@ -70,8 +71,7 @@ export class RoutingMatrix {
         <div class="matrix-wrapper">
           <div class="matrix${this.compact ? ' is-compact' : ''}" id="routing-grid" role="grid"
                aria-label="Routing matrix" style="grid-template-columns: var(--label-width) repeat(${this.outputCount}, var(--cell-size));">
-            ${this._renderHeaders()}
-            ${this._renderRows()}
+            ${renderMatrixGrid(this)}
           </div>
         </div>
       ` : emptyState('No routing grid yet', 'Connect to a switcher to load inputs and outputs.')}
@@ -81,34 +81,6 @@ export class RoutingMatrix {
     const rawEl = document.getElementById('route-raw');
     if (rawEl) rawEl.textContent = this.raw;
     this._renderTimestamp();
-  }
-
-  _renderHeaders() {
-    let html = '<div class="matrix-header matrix-corner" aria-hidden="true"></div>';
-    for (let output = 1; output <= this.outputCount; output++) {
-      html += `<div class="matrix-header" data-out="${output}" role="columnheader">${this.compact ? output : `OUT ${output}`}</div>`;
-    }
-    return html;
-  }
-
-  _renderRows() {
-    let html = '';
-    for (let input = 1; input <= this.inputCount; input++) {
-      html += `<div class="matrix-label" data-in="${input}" role="rowheader">IN ${input}</div>`;
-      for (let output = 1; output <= this.outputCount; output++) {
-        const active = this._isActive(input, output);
-        const label = `Route input ${input} to output ${output}`;
-        html += `<button type="button" class="matrix-cell ${active ? 'active' : ''}" role="gridcell"
-          data-in="${input}" data-out="${output}" tabindex="${input === 1 && output === 1 ? '0' : '-1'}"
-          aria-pressed="${active}" title="IN ${input} \u2192 OUT ${output}" aria-label="${label}">${active ? '\u25CF' : ''}</button>`;
-      }
-    }
-    return html;
-  }
-
-  _isActive(input, output) {
-    const modeKey = this.mode === 'av' || this.mode === 'avu' ? 'video' : this.mode;
-    return this.routes[modeKey]?.[output] === input;
   }
 
   _renderTimestamp() {
@@ -238,7 +210,7 @@ export class RoutingMatrix {
   updateGrid() {
     const grid = document.getElementById('routing-grid');
     if (!grid) return;
-    grid.innerHTML = this._renderHeaders() + this._renderRows();
+    grid.innerHTML = renderMatrixGrid(this);
   }
 
   async refresh() {
@@ -259,6 +231,10 @@ export class RoutingMatrix {
       this.lastUpdated = new Date();
       this.updateGrid();
       this._renderTimestamp();
+
+      if (data.timedOut) {
+        window.app?.toast('Switcher response was incomplete — the grid may be out of date', 'error');
+      }
 
       const rawEl = document.getElementById('route-raw');
       if (rawEl) rawEl.textContent = this.raw;
