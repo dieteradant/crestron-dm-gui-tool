@@ -1,3 +1,5 @@
+const connectionStatePayload = require('../connection-state');
+
 class WSHandler {
   constructor(wss, connection, commandQueue) {
     this.wss = wss;
@@ -45,14 +47,7 @@ class WSHandler {
   _connectionPayload() {
     return {
       type: 'connection',
-      connected: this.connection.connected,
-      configured: this.connection.isConfigured,
-      host: this.connection.host || '',
-      port: this.connection.port,
-      transport: this.connection.transport,
-      username: this.connection.username || '',
-      hasPassword: Boolean(this.connection.password),
-      prompt: this.connection.promptPattern
+      ...connectionStatePayload(this.connection),
     };
   }
 

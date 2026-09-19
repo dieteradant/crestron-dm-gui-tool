@@ -1,17 +1,14 @@
 const express = require('express');
 const { parseNetwork } = require('../ctp/parser');
+const { asyncHandler } = require('../http');
 
 function createRouter(commandQueue) {
   const router = express.Router();
 
-  router.get('/network', async (req, res) => {
-    try {
-      const raw = await commandQueue.execute('ESTatus', 10000);
-      res.json(parseNetwork(raw));
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  });
+  router.get('/network', asyncHandler(async (req, res) => {
+    const raw = await commandQueue.execute('ESTatus', 10000);
+    res.json(parseNetwork(raw));
+  }));
 
   return router;
 }
