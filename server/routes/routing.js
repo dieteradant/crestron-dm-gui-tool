@@ -1,56 +1,54 @@
 const express = require('express');
 const { parseRoutes } = require('../ctp/parser');
-const { httpError, asyncHandler } = require('../http');
+const { httpError, asyncHandler, requirePositiveInt } = require('../http');
+
+const ROUTE_COMMANDS = Object.freeze({
+  video: 'SETVIDEOROUTE',
+  audio: 'SETAUDIOROUTE',
+  usb: 'SETUSBROUTE',
+  av: 'SETAVROUTE',
+  avu: 'SETAVUROUTE',
+});
+
+function validatePortRange(label, value, max, maxLabel) {
+  if (Number.isInteger(max) && max > 0 && value > max) {
+    throw httpError(400, `${label} ${value} is out of range (device has ${max} ${maxLabel})`);
+  }
+}
 
 function createRouter(commandQueue, deviceCapabilities) {
   const router = express.Router();
 
   router.get('/routes', asyncHandler(async (req, res) => {
     const capabilities = deviceCapabilities ? await deviceCapabilities.get() : null;
-    const raw = await commandQueue.execute('DUMPDMROUTEInfo', 20000);
+    const result = await commandQueue.executeDetailed('DUMPDMROUTEInfo', 20000);
     res.json({
-      ...parseRoutes(raw, capabilities || {}),
-      raw,
+      ...parseRoutes(result.raw, capabilities || {}),
+      raw: result.raw,
+      // The queue resolves with partial data on timeout/disconnect so the
+      // client can flag the grid as possibly incomplete.
+      timedOut: result.timedOut || result.disconnected || false,
       inputCount: capabilities?.inputCount || null,
       outputCount: capabilities?.outputCount || null,
       model: capabilities?.model || null,
     });
   }));
 
-  router.post('/route/video', asyncHandler(async (req, res) => {
-    const { input, output } = req.body;
-    if (!input || !output) throw httpError(400, 'input and output required');
-    const raw = await commandQueue.execute(`SETVIDEOROUTE ${input} ${output}`);
-    res.json({ success: true, raw });
-  }));
+  for (const [mode, command] of Object.entries(ROUTE_COMMANDS)) {
+    router.post(`/route/${mode}`, asyncHandler(async (req, res) => {
+      const input = requirePositiveInt(req.body?.input, 'input');
+      const output = requirePositiveInt(req.body?.output, 'output');
 
-  router.post('/route/audio', asyncHandler(async (req, res) => {
-    const { input, output } = req.body;
-    if (!input || !output) throw httpError(400, 'input and output required');
-    const raw = await commandQueue.execute(`SETAUDIOROUTE ${input} ${output}`);
-    res.json({ success: true, raw });
-  }));
+      const cached = deviceCapabilities?.getCached();
+      if (cached) {
+        validatePortRange('input', input, cached.inputCount, 'inputs');
+        validatePortRange('output', output, cached.outputCount, 'outputs');
+      }
 
-  router.post('/route/usb', asyncHandler(async (req, res) => {
-    const { input, output } = req.body;
-    if (!input || !output) throw httpError(400, 'input and output required');
-    const raw = await commandQueue.execute(`SETUSBROUTE ${input} ${output}`);
-    res.json({ success: true, raw });
-  }));
-
-  router.post('/route/av', asyncHandler(async (req, res) => {
-    const { input, output } = req.body;
-    if (!input || !output) throw httpError(400, 'input and output required');
-    const raw = await commandQueue.execute(`SETAVROUTE ${input} ${output}`);
-    res.json({ success: true, raw });
-  }));
-
-  router.post('/route/avu', asyncHandler(async (req, res) => {
-    const { input, output } = req.body;
-    if (!input || !output) throw httpError(400, 'input and output required');
-    const raw = await commandQueue.execute(`SETAVUROUTE ${input} ${output}`);
-    res.json({ success: true, raw });
-  }));
+      const raw = await commandQueue.execute(`${command} ${input} ${output}`);
+      res.json({ success: true, raw });
+    }));
+  }
 
   return router;
 }

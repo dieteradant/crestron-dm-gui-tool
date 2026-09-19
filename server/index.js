@@ -1,24 +1,14 @@
 require('dotenv').config();
 
 const http = require('http');
-const express = require('express');
-const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const SwitcherConnection = require('./ctp/connection');
-const {
-  defaultPortForTransport,
-  normalizeConnectionConfig,
-} = require('./ctp/connection-config');
+const { normalizeConnectionConfig } = require('./ctp/connection-config');
 const CommandQueue = require('./ctp/command-queue');
 const DeviceCapabilitiesService = require('./ctp/device-capabilities');
 const WSHandler = require('./ws/handler');
-const connectionStatePayload = require('./connection-state');
-const { httpError, asyncHandler, apiErrorMiddleware } = require('./http');
-const createRoutingRouter = require('./routes/routing');
-const createStatusRouter = require('./routes/status');
-const createSystemRouter = require('./routes/system');
-const createNetworkRouter = require('./routes/network');
+const createApp = require('./app');
 
 const DEFAULT_SERVER_PORT = 3000;
 
@@ -53,75 +43,15 @@ if (switcherConnection.isConfigured) {
   switcherConnection.connect();
 }
 
-// --- Express ---
-const app = express();
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'client')));
-
-// API routes
-app.use('/api', createRoutingRouter(commandQueue, deviceCapabilities));
-app.use('/api', createStatusRouter(commandQueue, deviceCapabilities));
-app.use('/api', createSystemRouter(commandQueue));
-app.use('/api', createNetworkRouter(commandQueue));
-
-app.get('/api/capabilities', asyncHandler(async (req, res) => {
-  res.json(await deviceCapabilities.get());
-}));
-
-// Connection status endpoint
-app.get('/api/connection', (req, res) => {
-  res.json(connectionStatePayload(switcherConnection));
-});
-
-// Connect to a different switcher
-app.post('/api/connection', asyncHandler(async (req, res) => {
-  const connectionConfig = normalizeConnectionConfig(req.body || {}, {
-    transport: switcherConnection.transport,
-    port: switcherConnection.port,
-    username: switcherConnection.username,
-    password: switcherConnection.password,
-  });
-
-  if (!connectionConfig.host) {
-    throw httpError(400, 'host required');
-  }
-
-  if (connectionConfig.transport === 'ssh' && !connectionConfig.username) {
-    throw httpError(400, 'username required for SSH');
-  }
-
-  if (!connectionConfig.port) {
-    connectionConfig.port = defaultPortForTransport(connectionConfig.transport);
-  }
-
-  console.log(`[Server] Reconnecting via ${connectionConfig.transport.toUpperCase()} to ${connectionConfig.host}:${connectionConfig.port}`);
-  deviceCapabilities.invalidate();
-  switcherConnection.reconnectTo(connectionConfig);
-  res.json({
-    success: true,
-    configured: true,
-    host: connectionConfig.host,
-    port: connectionConfig.port,
-    transport: connectionConfig.transport,
-    username: connectionConfig.username || '',
-    hasPassword: Boolean(connectionConfig.password),
-  });
-}));
-
-// Raw command endpoint for the active console transport
-app.post('/api/command', asyncHandler(async (req, res) => {
-  const { command, timeout } = req.body;
-  if (!command) throw httpError(400, 'command required');
-  const raw = await commandQueue.execute(command, timeout || 10000);
-  res.json({ raw });
-}));
-
-app.use(apiErrorMiddleware);
-
 // --- HTTP + WebSocket Server ---
+const app = createApp({
+  connection: switcherConnection,
+  commandQueue,
+  deviceCapabilities,
+});
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
-const wsHandler = new WSHandler(wss, switcherConnection, commandQueue);
+new WSHandler(wss, switcherConnection, commandQueue);
 
 server.listen(SERVER_PORT, () => {
   const address = server.address();

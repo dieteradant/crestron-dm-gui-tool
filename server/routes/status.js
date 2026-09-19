@@ -1,6 +1,6 @@
 const express = require('express');
 const { parseCards, parseEdid, parseHdcp } = require('../ctp/parser');
-const { httpError, asyncHandler } = require('../http');
+const { asyncHandler, requirePositiveInt, optionalPositiveInt, safeToken } = require('../http');
 
 function createRouter(commandQueue, deviceCapabilities) {
   const router = express.Router();
@@ -28,30 +28,32 @@ function createRouter(commandQueue, deviceCapabilities) {
   }));
 
   router.get('/edid/input/:port', asyncHandler(async (req, res) => {
-    const raw = await commandQueue.execute(`EDIDINputinfo ${req.params.port}`, 10000);
-    res.json({ port: req.params.port, raw });
+    const port = requirePositiveInt(req.params.port, 'port');
+    const raw = await commandQueue.execute(`EDIDINputinfo ${port}`, 10000);
+    res.json({ port, raw });
   }));
 
   router.get('/edid/output/:port', asyncHandler(async (req, res) => {
-    const raw = await commandQueue.execute(`EDIDOUTPUTinfo ${req.params.port}`, 10000);
-    res.json({ port: req.params.port, raw });
+    const port = requirePositiveInt(req.params.port, 'port');
+    const raw = await commandQueue.execute(`EDIDOUTPUTinfo ${port}`, 10000);
+    res.json({ port, raw });
   }));
 
   router.post('/edid/copy-tx', asyncHandler(async (req, res) => {
-    const { source, destination } = req.body;
-    if (!source || !destination) throw httpError(400, 'source and destination required');
+    const source = requirePositiveInt(req.body?.source, 'source');
+    const destination = requirePositiveInt(req.body?.destination, 'destination');
     const raw = await commandQueue.execute(`COPYTXEDID ${source} ${destination}`);
     res.json({ success: true, raw });
   }));
 
   router.post('/edid/force', asyncHandler(async (req, res) => {
-    const { port } = req.body;
+    const port = optionalPositiveInt(req.body?.port, 'port');
     const raw = await commandQueue.execute(`FORCESENTEDId${port ? ' ' + port : ''}`);
     res.json({ success: true, raw });
   }));
 
   router.post('/edid/force-default', asyncHandler(async (req, res) => {
-    const { port } = req.body;
+    const port = optionalPositiveInt(req.body?.port, 'port');
     const raw = await commandQueue.execute(`FORCEDEFAULTEDID${port ? ' ' + port : ''}`);
     res.json({ success: true, raw });
   }));
@@ -62,7 +64,7 @@ function createRouter(commandQueue, deviceCapabilities) {
   }));
 
   router.post('/edid/lockout', asyncHandler(async (req, res) => {
-    const { state } = req.body;
+    const state = safeToken(req.body?.state, 'state');
     const raw = await commandQueue.execute(`SETEDIDLOCKOUT ${state}`);
     res.json({ success: true, raw });
   }));
